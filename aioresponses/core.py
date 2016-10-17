@@ -14,8 +14,9 @@ from aiohttp.errors import ClientConnectionError
 class UrlResponse(object):
     resp = None
 
-    def __init__(self, url, method=hdrs.METH_GET, status=200, body='',
-                 payload=None, content_type='application/json'):
+    def __init__(self, url: str, method: str = hdrs.METH_GET,
+                 status: int = 200, body: str = '',
+                 payload: Dict = None, content_type: str = 'application/json'):
         self.url = self.parse_url(url)
         self.method = method.lower()
         self.status = status
@@ -67,12 +68,12 @@ class aioresponses(object):
     def __call__(self, f):
         @wraps(f)
         def wrapped(*args, **kwargs):
-            with self as m:
+            with self as ctx:
                 if self._param:
-                    kwargs[self._param] = m
+                    kwargs[self._param] = ctx
                 else:
                     args = list(args)
-                    args.append(m)
+                    args.append(ctx)
 
                 return f(*args, **kwargs)
 
@@ -108,14 +109,15 @@ class aioresponses(object):
     def options(self, url: str, **kwargs):
         self.add(url, method=hdrs.METH_OPTIONS, **kwargs)
 
-    def add(self, url: str, method=hdrs.METH_GET, status=200, body='',
-            payload=None, content_type='application/json') -> None:
+    def add(self, url: str, method: str = hdrs.METH_GET, status: int = 200,
+            body: str = '',
+            payload=None, content_type: str = 'application/json') -> None:
         self._responses.append(UrlResponse(
             url, method=method, status=status,
             body=body, payload=payload, content_type=content_type
         ))
 
-    def match(self, method, url):
+    def match(self, method: str, url: str) -> 'ClientResponse':
         i, resp = next(
             iter(
                 [(i, r.build_response())
