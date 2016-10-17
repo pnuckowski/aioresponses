@@ -2,10 +2,6 @@
 aioresponses
 ===============================
 
-
-.. image:: https://img.shields.io/pypi/v/aioresponses.svg
-        :target: https://pypi.python.org/pypi/aioresponses
-
 .. image:: https://img.shields.io/travis/pnuckowski/aioresponses.svg
         :target: https://travis-ci.org/pnuckowski/aioresponses
 
@@ -14,8 +10,12 @@ aioresponses
         :alt: Documentation Status
 
 .. image:: https://pyup.io/repos/github/pnuckowski/aioresponses/shield.svg
-     :target: https://pyup.io/repos/github/pnuckowski/aioresponses/
-     :alt: Updates
+        :target: https://pyup.io/repos/github/pnuckowski/aioresponses/
+        :alt: Updates
+
+.. image:: https://coveralls.io/repos/github/pnuckowski/aioresponses/badge.svg?branch=master
+        :target: https://coveralls.io/github/pnuckowski/aioresponses?branch=master
+
 
 
 Python Boilerplate contains all the boilerplate you need to create a Python package.
