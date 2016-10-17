@@ -10,4 +10,4 @@ class TestAioresponses(TestCase):
         pass
 
     def test_0000_something(self):
-        self.assertTrue(True)
+        self.assertFalse(False)
