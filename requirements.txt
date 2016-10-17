@@ -1,1 +1,1 @@
-aiohttp
+aiohttp==1.0.5
