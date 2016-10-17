@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
+from aioresponses import __version__
 
 
 class TestAioresponses(TestCase):
@@ -10,4 +11,4 @@ class TestAioresponses(TestCase):
         pass
 
     def test_0000_something(self):
-        self.assertFalse(False)
+        self.assertEqual(__version__, '0.1.0')
