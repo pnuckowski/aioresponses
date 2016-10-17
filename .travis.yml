@@ -7,9 +7,14 @@ python: 3.5
 env:
   - TOXENV=py35
   - TOXENV=py34
+  - TOXENV=flake8
+  - TOXENV=coverage
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -U tox
+install: pip install -U tox coveralls
+
+after_success:
+    - coveralls
 
 # command to run tests, e.g. python setup.py test
 script: tox -e ${TOXENV}
