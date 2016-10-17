@@ -9,4 +9,4 @@ coverage==4.2
 Sphinx==1.4.8
 nose2==0.6.5
 cov-core==1.15.0
-ddt
+ddt==1.1.1
