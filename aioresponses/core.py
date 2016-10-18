@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import asyncio
 import json
 from functools import wraps
-from typing import Dict, Tuple
+
+try:
+    from typing import Dict, Tuple
+except ImportError:
+    Dict = dict
+    Tuple = tuple
 from unittest.mock import patch
 from urllib.parse import urlparse, parse_qsl, urlencode
 
@@ -131,8 +137,9 @@ class aioresponses(object):
             del self._responses[i]
         return resp
 
-    async def _request_mock(self, method: str, url: str,
-                            *args: Tuple, **kwargs: Dict) -> 'ClientResponse':
+    @asyncio.coroutine
+    def _request_mock(self, method: str, url: str,
+                      *args: Tuple, **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
         response = self.match(method, url)
         if response is None:

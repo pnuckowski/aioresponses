@@ -5,6 +5,7 @@ language: python
 python: 3.5
 
 env:
+  - TOXENV=py34
   - TOXENV=py35
   - TOXENV=flake8
   - TOXENV=coverage
