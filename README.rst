@@ -22,17 +22,21 @@ aioresponses
 
 
 
-Python Boilerplate contains all the boilerplate you need to create a Python package.
+Aioresponses is a helper for mock/fake web requests in python aiohttp package.
+For requests module there is a lot of packages that helps us with testing (eg. httpretty, responses).
 
 
 * Free software: MIT license
-* Documentation: https://aioresponses.readthedocs.io.
 
 
 Features
 --------
 
-* TODO
+* Easy to mock out requests made by aiohttp.ClientSession
+
+Disclaimer
+----------
+Due to the fact that `aiohttp.{get, post, put, delete and so on} methods are in deprecation mode they are NOT supported by this package
 
 Credits
 ---------
