@@ -23,20 +23,40 @@ aioresponses
 
 
 Aioresponses is a helper for mock/fake web requests in python aiohttp package.
-For requests module there is a lot of packages that helps us with testing (eg. httpretty, responses).
 
+For requests module there is a lot of packages that helps us with testing (eg. httpretty, responses, requests-mock).
 
-* Free software: MIT license
+Examples
+--------
+.. code:: python
+
+        import aiohttp
+        import asyncio
+        from aioresponses import aioresponses
+
+        @aioresponses()
+        def test_request(mocked):
+                loop = asyncio.get_event_loop()
+                mocked.get('http://example.com', status=200, body='test')
+                session = aiohttp.ClientSession()
+                resp = loop.run_until_complete(sessios.get('http://example.com')
+
+                assert resp.status == 200
+
 
 
 Features
 --------
-
 * Easy to mock out requests made by aiohttp.ClientSession
 
 Disclaimer
 ----------
 Due to the fact that `aiohttp.{get, post, put, delete and so on} methods are in deprecation mode they are NOT supported by this package
+
+
+License
+-------
+* Free software: MIT license
 
 Credits
 ---------
