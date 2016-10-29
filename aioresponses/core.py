@@ -12,9 +12,7 @@ except ImportError:
 from unittest.mock import patch
 from urllib.parse import urlparse, parse_qsl, urlencode
 
-from aiohttp import hdrs
-from aiohttp.client_reqrep import ClientResponse
-from aiohttp.errors import ClientConnectionError
+from aiohttp import hdrs, ClientResponse, ClientConnectionError
 
 
 class UrlResponse(object):
@@ -22,7 +20,8 @@ class UrlResponse(object):
 
     def __init__(self, url: str, method: str = hdrs.METH_GET,
                  status: int = 200, body: str = '',
-                 payload: Dict = None, content_type: str = 'application/json'):
+                 headers: Dict = None, payload: Dict = None,
+                 content_type: str = 'application/json', ):
         self.url = self.parse_url(url)
         self.method = method.lower()
         self.status = status
@@ -31,6 +30,7 @@ class UrlResponse(object):
         if not isinstance(body, bytes):
             body = str.encode(body)
         self.body = body
+        self.headers = headers
         self.content_type = content_type
 
     def parse_url(self, url: str) -> str:
@@ -49,6 +49,8 @@ class UrlResponse(object):
         self.resp = ClientResponse(self.method, self.url)
         # we need to initialize headers manually
         self.resp.headers = {hdrs.CONTENT_TYPE: self.content_type}
+        if self.headers:
+            self.resp.headers.update(self.headers)
         self.resp.status = self.status
         self.resp._content = self.body
 
@@ -117,10 +119,17 @@ class aioresponses(object):
 
     def add(self, url: str, method: str = hdrs.METH_GET, status: int = 200,
             body: str = '',
-            payload=None, content_type: str = 'application/json') -> None:
+            content_type: str = 'application/json',
+            payload: Dict=None,
+            headers: Dict=None) -> None:
         self._responses.append(UrlResponse(
-            url, method=method, status=status,
-            body=body, payload=payload, content_type=content_type
+            url,
+            method=method,
+            status=status,
+            content_type=content_type,
+            body=body,
+            payload=payload,
+            headers=headers,
         ))
 
     def match(self, method: str, url: str) -> 'ClientResponse':
