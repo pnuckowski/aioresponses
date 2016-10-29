@@ -43,6 +43,16 @@ class AIOResponsesTestCase(TestCase):
         self.assertIsInstance(response, ClientResponse)
 
     @aioresponses()
+    def test_returned_response_headers(self, m):
+        m.get(self.url,
+              content_type='text/html',
+              headers={'Connection': 'keep-alive'})
+        response = self.loop.run_until_complete(self.session.get(self.url))
+
+        self.assertEqual(response.headers['Connection'], 'keep-alive')
+        self.assertEqual(response.headers[hdrs.CONTENT_TYPE], 'text/html')
+
+    @aioresponses()
     def test_method_dont_match(self, m):
         m.get(self.url)
         with self.assertRaises(ClientConnectionError):
