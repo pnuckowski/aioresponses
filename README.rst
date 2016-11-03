@@ -16,10 +16,12 @@ aioresponses
         :target: https://pyup.io/repos/github/pnuckowski/aioresponses/
         :alt: Updates
 
+.. image:: https://img.shields.io/pypi/v/aioresponses.svg
+        :target: https://pypi.python.org/pypi/aioresponses
+
 .. image:: https://readthedocs.org/projects/aioresponses/badge/?version=latest
         :target: https://aioresponses.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
-
 
 
 Aioresponses is a helper for mock/fake web requests in python aiohttp package.
@@ -33,12 +35,17 @@ Installing
 ----------
 
 .. code:: bash
+
     $ pip install aioresponses
 
-Examples
+Usage
 --------
-The package may used in many ways.
-The most common and easier way is to use a decorator.
+
+To mock out http request use *aioresponses* as method decorator or as context manager.
+
+Response *status* code, *body*, *payload* (for json response) and *headers* can be mocked.
+
+Supported http methods: **get**, **post**, **put**, **patch**, **delete** and **options**.
 
 .. code:: python
 
@@ -56,8 +63,9 @@ The most common and easier way is to use a decorator.
         assert resp.status == 200
 
 
+for convenience use *payload* argument to mock out json response. Example below.
 
-Testing by using context manager.
+**as context manager**
 
 .. code:: python
 
@@ -76,6 +84,50 @@ Testing by using context manager.
 
             assert dict(foo='bar') == data
 
+**aioresponses allow to mock out any HTTP headers**
+
+.. code:: python
+
+    import asyncio
+    import aiohttp
+    from aioresponses import aioresponses
+
+    @aioresponses()
+    def test_http_headers(m):
+        loop = asyncio.get_event_loop()
+        session = aiohttp.ClientSession()
+        m.post(
+            'http://example.com',
+            payload=dict(),
+            headers=dict(connection='keep-alive'),
+        )
+
+        resp = loop.run_until_complete(session.post('http://example.com'))
+
+        # note that we pass 'connection' but get 'Connection' (capitalized)
+        # under the neath `multidict` is used to work with HTTP headers
+        assert resp.headers['Connection'] == 'keep-alive'
+
+**allow to register different response for the same url**
+
+.. code:: python
+
+    import asyncio
+    import aiohttp
+    from aioresponses import aioresponses
+
+    @aioresponses()
+    def test_multiple_respnses(m):
+        loop = asyncio.get_event_loop()
+        session = aiohttp.ClientSession()
+        m.get('http://example.com', status=500)
+        m.get('http://example.com', status=200)
+
+        resp1 = loop.run_until_complete(session.get('http://example.com'))
+        resp2 = loop.run_until_complete(session.get('http://example.com'))
+
+        assert resp1.status == 500
+        assert resp2.status == 200
 
 
 Features
