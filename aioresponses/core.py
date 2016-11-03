@@ -3,6 +3,7 @@
 import asyncio
 import json
 from functools import wraps
+from multidict import CIMultiDict
 
 try:
     from typing import Dict, Tuple
@@ -48,7 +49,7 @@ class UrlResponse(object):
     def build_response(self) -> 'ClientResponse':
         self.resp = ClientResponse(self.method, self.url)
         # we need to initialize headers manually
-        self.resp.headers = {hdrs.CONTENT_TYPE: self.content_type}
+        self.resp.headers = CIMultiDict({hdrs.CONTENT_TYPE: self.content_type})
         if self.headers:
             self.resp.headers.update(self.headers)
         self.resp.status = self.status
