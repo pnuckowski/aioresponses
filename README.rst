@@ -2,7 +2,7 @@
 aioresponses
 ===============================
 
-.. image:: https://img.shields.io/travis/pnuckowski/aioresponses.svg
+.. image:: https://travis-ci.org/pnuckowski/aioresponses.svg?branch=master
         :target: https://travis-ci.org/pnuckowski/aioresponses
 
 .. image:: https://coveralls.io/repos/github/pnuckowski/aioresponses/badge.svg?branch=master
