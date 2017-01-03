@@ -14,6 +14,7 @@ from unittest.mock import patch
 from urllib.parse import urlparse, parse_qsl, urlencode
 
 from aiohttp import hdrs, ClientResponse, ClientConnectionError
+import yarl
 
 
 class UrlResponse(object):
@@ -47,7 +48,7 @@ class UrlResponse(object):
         return self.url == self.parse_url(url)
 
     def build_response(self) -> 'ClientResponse':
-        self.resp = ClientResponse(self.method, self.url)
+        self.resp = ClientResponse(self.method, yarl.URL(self.url))
         # we need to initialize headers manually
         self.resp.headers = CIMultiDict({hdrs.CONTENT_TYPE: self.content_type})
         if self.headers:
