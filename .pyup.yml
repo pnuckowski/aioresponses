@@ -1,0 +1,7 @@
+label_prs: update
+
+requirements:
+  - requirements.txt:
+      pin: False
+  - requirements-dev.txt:
+      pin: False
