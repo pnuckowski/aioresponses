@@ -6,6 +6,6 @@ flake8
 tox
 coverage
 Sphinx
-nose2
+nose2==0.6.5
 cov-core
 ddt
