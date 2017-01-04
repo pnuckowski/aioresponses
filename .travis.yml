@@ -2,9 +2,6 @@
 # This file will be regenerated if you run travis_pypi_setup.py
 
 language: python
-python:
-  - 3.4
-  - 3.5
 
 matrix:
   include:
