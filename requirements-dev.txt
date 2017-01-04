@@ -3,7 +3,7 @@ bumpversion
 wheel
 watchdog
 flake8
-tox
+tox==2.5.0
 coverage
 Sphinx
 nose2
