@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import asyncio
 from unittest.case import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from aiohttp import hdrs
 from aiohttp.client import ClientSession
@@ -124,3 +124,12 @@ class AIOResponsesTestCase(TestCase):
             self.assertEqual(len(m.requests[key]), 3)
             self.assertEqual(m.requests[key][0].args, tuple())
             self.assertEqual(m.requests[key][0].kwargs, {'allow_redirects': True})
+
+    def test_passthrough(self):
+        self.session._request = mocked = Mock()
+        mocked.side_effect = asyncio.coroutine(
+            lambda method, url, *args, **kwargs: None)
+        with aioresponses(passthrough=['http://example.com']) as m:
+            resp = self.loop.run_until_complete(self.session.get(self.url))
+            mocked.assert_called_once_with(
+                'GET', 'http://example.com/api', allow_redirects=True)

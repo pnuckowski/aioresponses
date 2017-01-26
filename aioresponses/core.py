@@ -15,7 +15,7 @@ except ImportError:
 from unittest.mock import patch
 from urllib.parse import urlparse, parse_qsl, urlencode
 
-from aiohttp import hdrs, ClientResponse, ClientConnectionError
+from aiohttp import hdrs, ClientResponse, ClientConnectionError, client
 from .compat import URL
 
 
@@ -68,8 +68,10 @@ class aioresponses(object):
 
     def __init__(self, **kwargs):
         self._param = kwargs.pop('param', None)
+        self._passthrough = kwargs.pop('passthrough', [])
         self.patcher = patch('aiohttp.client.ClientSession._request',
-                             side_effect=self._request_mock)
+                             side_effect=self._request_mock,
+                             autospec=True)
         self.requests = {}
 
     def __enter__(self) -> 'aioresponses':
@@ -153,9 +155,15 @@ class aioresponses(object):
         return resp
 
     @asyncio.coroutine
-    def _request_mock(self, method: str, url: str,
-                      *args: Tuple, **kwargs: Dict) -> 'ClientResponse':
+    def _request_mock(self, orig_self: client.ClientSession,
+                      method: str, url: str, *args: Tuple,
+                      **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
+        for prefix in self._passthrough:
+            if url.startswith(prefix):
+                return self.patcher.temp_original(
+                    orig_self, method, url, *args, **kwargs)
+
         response = self.match(method, url)
         if response is None:
             raise ClientConnectionError(

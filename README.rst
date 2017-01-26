@@ -130,6 +130,22 @@ for convenience use *payload* argument to mock out json response. Example below.
         assert resp2.status == 200
 
 
+**allow to passthrough to a specified list of servers**
+
+.. code:: python
+
+    import asyncio
+    import aiohttp
+    from aioresponses import aioresponses
+
+    @aioresponses(passthrough=['http://backend'])
+    def test_multiple_respnses(m, test_client):
+        session = aiohttp.ClientSession()
+        # this will actually perform a request
+        resp = loop.run_until_complete(session.get('http://backend/api'))
+
+
+
 Features
 --------
 * Easy to mock out http requests made by *aiohttp.ClientSession*
@@ -150,4 +166,3 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
-
