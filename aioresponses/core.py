@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
+import collections
 import json
 
 from functools import wraps
@@ -63,11 +64,13 @@ class UrlResponse(object):
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
     _responses = None
+    method_call = collections.namedtuple('method_call', ['args', 'kwargs'])
 
     def __init__(self, **kwargs):
         self._param = kwargs.pop('param', None)
         self.patcher = patch('aiohttp.client.ClientSession._request',
                              side_effect=self._request_mock)
+        self.requests = {}
 
     def __enter__(self) -> 'aioresponses':
         self.start()
@@ -158,4 +161,7 @@ class aioresponses(object):
             raise ClientConnectionError(
                 'Connection refused: {} {}'.format(method, url)
             )
+        key = (method, url)
+        self.requests.setdefault(key, list())
+        self.requests[key].append(self.method_call(args, kwargs))
         return response
