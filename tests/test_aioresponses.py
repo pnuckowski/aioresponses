@@ -118,3 +118,9 @@ class AIOResponsesTestCase(TestCase):
             self.assertEqual(resp.status, 201)
             resp = self.loop.run_until_complete(self.session.get(self.url))
             self.assertEqual(resp.status, 202)
+
+            key = ('GET', self.url)
+            self.assertIn(key, m.requests)
+            self.assertEqual(len(m.requests[key]), 3)
+            self.assertEqual(m.requests[key][0].args, tuple())
+            self.assertEqual(m.requests[key][0].kwargs, {'allow_redirects': True})
