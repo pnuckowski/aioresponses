@@ -6,7 +6,7 @@ from unittest.mock import patch, Mock
 from aiohttp import hdrs
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
-from aiohttp.errors import ClientConnectionError
+from aiohttp.errors import ClientConnectionError, HttpProcessingError
 from ddt import ddt, data
 
 from aioresponses import aioresponses
@@ -105,6 +105,14 @@ class AIOResponsesTestCase(TestCase):
             with self.assertRaises(ClientConnectionError):
                 self.loop.run_until_complete(
                     self.session.get('http://example.com/foo')
+                )
+
+    def test_raising_custom_error(self):
+        with aioresponses() as aiomock:
+            aiomock.get(self.url, exception=HttpProcessingError(message='foo'))
+            with self.assertRaises(HttpProcessingError):
+                self.loop.run_until_complete(
+                    self.session.get(self.url)
                 )
 
     def test_multiple_requests(self):
