@@ -145,6 +145,23 @@ for convenience use *payload* argument to mock out json response. Example below.
         resp = loop.run_until_complete(session.get('http://backend/api'))
 
 
+**aaioresponses allow to throw an exception**
+
+.. code:: python
+
+    import asyncio
+    from aiohttp import ClientSession, HttpProcessingError
+    from aioresponses import aioresponses
+
+    @aioresponses()
+    def test_multiple_respnses(m, test_client):
+        loop = asyncio.get_event_loop()
+        session = ClientSession()
+        m.get('http://example.com/api', exception=HttpProcessingError('test'))
+
+        # calling `loop.run_until_complete(session.get('http://example.com/api'))` will throw an exception.
+
+
 
 Features
 --------
