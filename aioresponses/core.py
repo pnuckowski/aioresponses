@@ -24,6 +24,7 @@ class UrlResponse(object):
 
     def __init__(self, url: str, method: str = hdrs.METH_GET,
                  status: int = 200, body: str = '',
+                 exception: 'Exception' = None,
                  headers: Dict = None, payload: Dict = None,
                  content_type: str = 'application/json', ):
         self.url = self.parse_url(url)
@@ -34,6 +35,7 @@ class UrlResponse(object):
         if not isinstance(body, bytes):
             body = str.encode(body)
         self.body = body
+        self.exception = exception
         self.headers = headers
         self.content_type = content_type
 
@@ -50,6 +52,8 @@ class UrlResponse(object):
         return self.url == self.parse_url(url)
 
     def build_response(self) -> 'ClientResponse':
+        if isinstance(self.exception, Exception):
+            raise self.exception
         self.resp = ClientResponse(self.method, URL(self.url))
         # we need to initialize headers manually
         self.resp.headers = CIMultiDict({hdrs.CONTENT_TYPE: self.content_type})
@@ -127,6 +131,7 @@ class aioresponses(object):
 
     def add(self, url: str, method: str = hdrs.METH_GET, status: int = 200,
             body: str = '',
+            exception: 'Exception' = None,
             content_type: str = 'application/json',
             payload: Dict=None,
             headers: Dict=None) -> None:
@@ -136,6 +141,7 @@ class aioresponses(object):
             status=status,
             content_type=content_type,
             body=body,
+            exception=exception,
             payload=payload,
             headers=headers,
         ))

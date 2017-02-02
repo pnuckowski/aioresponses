@@ -117,7 +117,7 @@ for convenience use *payload* argument to mock out json response. Example below.
     from aioresponses import aioresponses
 
     @aioresponses()
-    def test_multiple_respnses(m):
+    def test_multiple_responses(m):
         loop = asyncio.get_event_loop()
         session = aiohttp.ClientSession()
         m.get('http://example.com', status=500)
@@ -139,10 +139,29 @@ for convenience use *payload* argument to mock out json response. Example below.
     from aioresponses import aioresponses
 
     @aioresponses(passthrough=['http://backend'])
-    def test_multiple_respnses(m, test_client):
+    def test_passthrough(m, test_client):
         session = aiohttp.ClientSession()
         # this will actually perform a request
         resp = loop.run_until_complete(session.get('http://backend/api'))
+
+
+**aioresponses allow to throw an exception**
+
+.. code:: python
+
+    import asyncio
+    from aiohttp import ClientSession, HttpProcessingError
+    from aioresponses import aioresponses
+
+    @aioresponses()
+    def test_how_to_throw_an_exception(m, test_client):
+        loop = asyncio.get_event_loop()
+        session = ClientSession()
+        m.get('http://example.com/api', exception=HttpProcessingError('test'))
+
+        # calling
+        # loop.run_until_complete(session.get('http://example.com/api'))
+        # will throw an exception.
 
 
 
