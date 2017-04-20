@@ -6,7 +6,12 @@ from unittest.mock import patch, Mock
 from aiohttp import hdrs
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
-from aiohttp.errors import ClientConnectionError, HttpProcessingError
+
+try:
+    from aiohttp.errors import ClientConnectionError, HttpProcessingError
+except ImportError:
+    from aiohttp.client_exceptions import ClientConnectionError
+    from aiohttp.http_exceptions import HttpProcessingError
 from ddt import ddt, data
 
 from aioresponses import aioresponses
