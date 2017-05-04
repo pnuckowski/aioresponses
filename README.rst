@@ -24,12 +24,12 @@ aioresponses
         :alt: Documentation Status
 
 
-Aioresponses is a helper for mock/fake web requests in python aiohttp package.
+Aioresponses is a helper to mock/fake web requests in python aiohttp package.
 
-For *requests* module there is a lot of packages that helps us with testing (eg. *httpretty*, *responses*, *requests-mock*).
+For *requests* module there are a lot of packages that help us with testing (eg. *httpretty*, *responses*, *requests-mock*).
 
-When it comes to testing asynchronous http requests it is a bit harder (at least at the beginning).
-The purpose of this package is to provide an easy way to test asynchronous http requests.
+When it comes to testing asynchronous HTTP requests it is a bit harder (at least at the beginning).
+The purpose of this package is to provide an easy way to test asynchronous HTTP requests.
 
 Installing
 ----------
@@ -41,11 +41,11 @@ Installing
 Usage
 --------
 
-To mock out http request use *aioresponses* as method decorator or as context manager.
+To mock out HTTP request use *aioresponses* as a method decorator or as a context manager.
 
 Response *status* code, *body*, *payload* (for json response) and *headers* can be mocked.
 
-Supported http methods: **get**, **post**, **put**, **patch**, **delete** and **options**.
+Supported HTTP methods: **GET**, **POST**, **PUT**, **PATCH**, **DELETE** and **OPTIONS**.
 
 .. code:: python
 
@@ -65,7 +65,7 @@ Supported http methods: **get**, **post**, **put**, **patch**, **delete** and **
 
 for convenience use *payload* argument to mock out json response. Example below.
 
-**as context manager**
+**as a context manager**
 
 .. code:: python
 
@@ -84,7 +84,7 @@ for convenience use *payload* argument to mock out json response. Example below.
 
             assert dict(foo='bar') == data
 
-**aioresponses allow to mock out any HTTP headers**
+**aioresponses allows to mock out any HTTP headers**
 
 .. code:: python
 
@@ -108,7 +108,7 @@ for convenience use *payload* argument to mock out json response. Example below.
         # under the neath `multidict` is used to work with HTTP headers
         assert resp.headers['Connection'] == 'keep-alive'
 
-**allow to register different response for the same url**
+**allows to register different responses for the same url**
 
 .. code:: python
 
@@ -130,7 +130,7 @@ for convenience use *payload* argument to mock out json response. Example below.
         assert resp2.status == 200
 
 
-**allow to passthrough to a specified list of servers**
+**allows to passthrough to a specified list of servers**
 
 .. code:: python
 
@@ -145,7 +145,7 @@ for convenience use *payload* argument to mock out json response. Example below.
         resp = loop.run_until_complete(session.get('http://backend/api'))
 
 
-**aioresponses allow to throw an exception**
+**aioresponses allows to throw an exception**
 
 .. code:: python
 
@@ -167,7 +167,7 @@ for convenience use *payload* argument to mock out json response. Example below.
 
 Features
 --------
-* Easy to mock out http requests made by *aiohttp.ClientSession*
+* Easy to mock out HTTP requests made by *aiohttp.ClientSession*
 
 Disclaimer
 ----------
@@ -179,7 +179,7 @@ License
 * Free software: MIT license
 
 Credits
----------
+-------
 
 This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
 
