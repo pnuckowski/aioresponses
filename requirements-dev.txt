@@ -8,4 +8,4 @@ coverage
 Sphinx
 nose2
 cov-core
-ddt
+ddt==1.1.1
