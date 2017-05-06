@@ -5,7 +5,7 @@ watchdog
 flake8
 tox
 coverage
-Sphinx
+Sphinx==1.5.1
 nose2
 cov-core
 ddt
