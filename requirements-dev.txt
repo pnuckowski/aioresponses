@@ -7,5 +7,5 @@ tox
 coverage
 Sphinx
 nose2
-cov-core
+cov-core==1.15.0
 ddt
