@@ -1,21 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
-import collections
 import json
-
-from functools import wraps
-from multidict import CIMultiDict
-
-try:
-    from typing import Dict, Tuple
-except ImportError:
-    Dict = dict
-    Tuple = tuple
+from typing import Dict, Tuple
 from unittest.mock import patch
 from urllib.parse import urlparse, parse_qsl, urlencode
 
+import collections
 from aiohttp import hdrs, ClientResponse, ClientConnectionError, client
+from functools import wraps
+from multidict import CIMultiDict
+
 from .compat import URL
 
 
@@ -133,8 +128,8 @@ class aioresponses(object):
             body: str = '',
             exception: 'Exception' = None,
             content_type: str = 'application/json',
-            payload: Dict=None,
-            headers: Dict=None) -> None:
+            payload: Dict = None,
+            headers: Dict = None) -> None:
         self._responses.append(UrlResponse(
             url,
             method=method,
@@ -166,9 +161,10 @@ class aioresponses(object):
                       **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
         for prefix in self._passthrough:
-            if url.startswith(prefix):
-                return self.patcher.temp_original(
-                    orig_self, method, url, *args, **kwargs)
+            if str(url).startswith(prefix):
+                return (yield from self.patcher.temp_original(
+                    orig_self, method, url, *args, **kwargs
+                ))
 
         response = self.match(method, url)
         if response is None:
