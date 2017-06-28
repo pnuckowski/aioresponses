@@ -65,6 +65,22 @@ class AIOResponsesTestCase(TestCase):
         with self.assertRaises(ClientConnectionError):
             self.loop.run_until_complete(self.session.post(self.url))
 
+    @aioresponses()
+    def test_streaming(self, m):
+        m.get(self.url, body='Test')
+        resp = self.loop.run_until_complete(self.session.get(self.url))
+        content = self.loop.run_until_complete(resp.content.read())
+        self.assertEqual(content, b'Test')
+
+    @aioresponses()
+    def test_streaming_up_to(self, m):
+        m.get(self.url, body='Test')
+        resp = self.loop.run_until_complete(self.session.get(self.url))
+        content = self.loop.run_until_complete(resp.content.read(2))
+        self.assertEqual(content, b'Te')
+        content = self.loop.run_until_complete(resp.content.read(2))
+        self.assertEqual(content, b'st')
+
     def test_mocking_as_context_manager(self):
         with aioresponses() as aiomock:
             aiomock.add(self.url, payload={'foo': 'bar'})

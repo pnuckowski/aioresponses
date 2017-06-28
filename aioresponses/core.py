@@ -7,7 +7,8 @@ from unittest.mock import patch
 from urllib.parse import urlparse, parse_qsl, urlencode
 
 import collections
-from aiohttp import hdrs, ClientResponse, ClientConnectionError, client
+from aiohttp import (
+    hdrs, ClientResponse, ClientConnectionError, StreamReader, client)
 from functools import wraps
 from multidict import CIMultiDict
 
@@ -55,7 +56,9 @@ class UrlResponse(object):
         if self.headers:
             self.resp.headers.update(self.headers)
         self.resp.status = self.status
-        self.resp._content = self.body
+        self.resp.content = StreamReader()
+        self.resp.content.feed_data(self.body)
+        self.resp.content.feed_eof()
 
         return self.resp
 
