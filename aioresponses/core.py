@@ -109,6 +109,9 @@ class aioresponses(object):
         self.patcher.stop()
         self._responses = []
 
+    def head(self, url: str, **kwargs):
+        self.add(url, method=hdrs.METH_HEAD, **kwargs)
+
     def get(self, url: str, **kwargs):
         self.add(url, method=hdrs.METH_GET, **kwargs)
 
