@@ -30,6 +30,7 @@ class AIOResponsesTestCase(TestCase):
         self.session.close()
 
     @data(
+        hdrs.METH_HEAD,
         hdrs.METH_GET,
         hdrs.METH_POST,
         hdrs.METH_PUT,
