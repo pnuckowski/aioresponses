@@ -1,7 +1,7 @@
 pip
 wheel
 watchdog==0.8.3
-flake8==3.3.0
+flake8==3.4.1
 tox==2.7.0
 coverage==4.4.1
 Sphinx==1.5.6
@@ -9,3 +9,4 @@ nose2==0.6.5
 cov-core==1.15.0
 ddt==1.1.1
 typing
+asynctest==0.10.0

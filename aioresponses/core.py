@@ -6,9 +6,10 @@ from typing import Dict, Tuple
 from unittest.mock import patch
 from urllib.parse import urlparse, parse_qsl, urlencode
 
-import collections
 from aiohttp import (
-    hdrs, ClientResponse, ClientConnectionError, StreamReader, client)
+    hdrs, ClientResponse, ClientConnectionError, StreamReader, client
+)
+from collections import namedtuple
 from functools import wraps
 from multidict import CIMultiDict
 
@@ -66,7 +67,7 @@ class UrlResponse(object):
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
     _responses = None
-    method_call = collections.namedtuple('method_call', ['args', 'kwargs'])
+    method_call = namedtuple('method_call', ['args', 'kwargs'])
 
     def __init__(self, **kwargs):
         self._param = kwargs.pop('param', None)
@@ -84,17 +85,26 @@ class aioresponses(object):
         self.stop()
 
     def __call__(self, f):
-        @wraps(f)
-        def wrapped(*args, **kwargs):
-            with self as ctx:
-                if self._param:
-                    kwargs[self._param] = ctx
-                else:
-                    args = list(args)
-                    args.append(ctx)
+        def _pack_arguments(ctx, *args, **kwargs) -> Tuple[Tuple, Dict]:
+            if self._param:
+                kwargs[self._param] = ctx
+            else:
+                args += (ctx,)
+            return args, kwargs
 
-                return f(*args, **kwargs)
-
+        if asyncio.iscoroutinefunction(f):
+            @wraps(f)
+            @asyncio.coroutine
+            def wrapped(*args, **kwargs):
+                with self as ctx:
+                    args, kwargs = _pack_arguments(ctx, *args, **kwargs)
+                    return (yield from f(*args, **kwargs))
+        else:
+            @wraps(f)
+            def wrapped(*args, **kwargs):
+                with self as ctx:
+                    args, kwargs = _pack_arguments(ctx, *args, **kwargs)
+                    return f(*args, **kwargs)
         return wrapped
 
     def start(self):
