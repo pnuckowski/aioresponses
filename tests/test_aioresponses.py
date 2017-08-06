@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import asyncio
-from unittest.case import TestCase
 from unittest.mock import patch
 
 from aiohttp import hdrs
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
+from asynctest import fail_on
+from asynctest.case import TestCase
 
 from aioresponses.compat import URL
 
@@ -21,13 +22,18 @@ from aioresponses import aioresponses
 
 @ddt
 class AIOResponsesTestCase(TestCase):
+    use_default_loop = False
+
+    @asyncio.coroutine
     def setUp(self):
         self.url = 'http://example.com/api'
-        self.loop = asyncio.get_event_loop()
         self.session = ClientSession()
+        super().setUp()
 
+    @asyncio.coroutine
     def tearDown(self):
         self.session.close()
+        super().tearDown()
 
     @data(
         hdrs.METH_GET,
@@ -38,6 +44,7 @@ class AIOResponsesTestCase(TestCase):
         hdrs.METH_OPTIONS,
     )
     @patch('aioresponses.aioresponses.add')
+    @fail_on(unused_loop=False)
     def test_shortcut_method(self, http_method, mocked):
         with aioresponses() as m:
             getattr(m, http_method.lower())(self.url)
@@ -50,11 +57,20 @@ class AIOResponsesTestCase(TestCase):
         self.assertIsInstance(response, ClientResponse)
 
     @aioresponses()
+    @asyncio.coroutine
+    def test_returned_instance_and_status_code(self, m):
+        m.get(self.url, status=204)
+        response = yield from self.session.get(self.url)
+        self.assertIsInstance(response, ClientResponse)
+        self.assertEqual(response.status, 204)
+
+    @aioresponses()
+    @asyncio.coroutine
     def test_returned_response_headers(self, m):
         m.get(self.url,
               content_type='text/html',
               headers={'Connection': 'keep-alive'})
-        response = self.loop.run_until_complete(self.session.get(self.url))
+        response = yield from self.session.get(self.url)
 
         self.assertEqual(response.headers['Connection'], 'keep-alive')
         self.assertEqual(response.headers[hdrs.CONTENT_TYPE], 'text/html')
@@ -66,50 +82,56 @@ class AIOResponsesTestCase(TestCase):
             self.loop.run_until_complete(self.session.post(self.url))
 
     @aioresponses()
+    @asyncio.coroutine
     def test_streaming(self, m):
         m.get(self.url, body='Test')
-        resp = self.loop.run_until_complete(self.session.get(self.url))
-        content = self.loop.run_until_complete(resp.content.read())
+        resp = yield from self.session.get(self.url)
+        content = yield from resp.content.read()
         self.assertEqual(content, b'Test')
 
     @aioresponses()
+    @asyncio.coroutine
     def test_streaming_up_to(self, m):
         m.get(self.url, body='Test')
-        resp = self.loop.run_until_complete(self.session.get(self.url))
-        content = self.loop.run_until_complete(resp.content.read(2))
+        resp = yield from self.session.get(self.url)
+        content = yield from resp.content.read(2)
         self.assertEqual(content, b'Te')
-        content = self.loop.run_until_complete(resp.content.read(2))
+        content = yield from resp.content.read(2)
         self.assertEqual(content, b'st')
 
+    @asyncio.coroutine
     def test_mocking_as_context_manager(self):
         with aioresponses() as aiomock:
             aiomock.add(self.url, payload={'foo': 'bar'})
-            resp = self.loop.run_until_complete(self.session.get(self.url))
+            resp = yield from self.session.get(self.url)
             self.assertEqual(resp.status, 200)
-            payload = self.loop.run_until_complete(resp.json())
+            payload = yield from resp.json()
             self.assertDictEqual(payload, {'foo': 'bar'})
 
     def test_mocking_as_decorator(self):
         @aioresponses()
-        def foo(m):
+        def foo(loop, m):
             m.add(self.url, payload={'foo': 'bar'})
 
-            resp = self.loop.run_until_complete(self.session.get(self.url))
+            resp = loop.run_until_complete(self.session.get(self.url))
             self.assertEqual(resp.status, 200)
-            payload = self.loop.run_until_complete(resp.json())
+            payload = loop.run_until_complete(resp.json())
             self.assertDictEqual(payload, {'foo': 'bar'})
 
-        foo()
+        foo(self.loop)
 
+    @asyncio.coroutine
     def test_passing_argument(self):
         @aioresponses(param='mocked')
+        @asyncio.coroutine
         def foo(mocked):
             mocked.add(self.url, payload={'foo': 'bar'})
-            resp = self.loop.run_until_complete(self.session.get(self.url))
+            resp = yield from self.session.get(self.url)
             self.assertEqual(resp.status, 200)
 
-        foo()
+        yield from foo()
 
+    @fail_on(unused_loop=False)
     def test_mocking_as_decorator_wrong_mocked_arg_name(self):
         @aioresponses(param='foo')
         def foo(bar):
@@ -122,32 +144,31 @@ class AIOResponsesTestCase(TestCase):
         self.assertIn("foo() got an unexpected keyword argument 'foo'",
                       str(exc))
 
+    @asyncio.coroutine
     def test_unknown_request(self):
         with aioresponses() as aiomock:
             aiomock.add(self.url, payload={'foo': 'bar'})
             with self.assertRaises(ClientConnectionError):
-                self.loop.run_until_complete(
-                    self.session.get('http://example.com/foo')
-                )
+                yield from self.session.get('http://example.com/foo')
 
+    @asyncio.coroutine
     def test_raising_custom_error(self):
         with aioresponses() as aiomock:
             aiomock.get(self.url, exception=HttpProcessingError(message='foo'))
             with self.assertRaises(HttpProcessingError):
-                self.loop.run_until_complete(
-                    self.session.get(self.url)
-                )
+                yield from self.session.get(self.url)
 
+    @asyncio.coroutine
     def test_multiple_requests(self):
         with aioresponses() as m:
             m.get(self.url, status=200)
             m.get(self.url, status=201)
             m.get(self.url, status=202)
-            resp = self.loop.run_until_complete(self.session.get(self.url))
+            resp = yield from self.session.get(self.url)
             self.assertEqual(resp.status, 200)
-            resp = self.loop.run_until_complete(self.session.get(self.url))
+            resp = yield from self.session.get(self.url)
             self.assertEqual(resp.status, 201)
-            resp = self.loop.run_until_complete(self.session.get(self.url))
+            resp = yield from self.session.get(self.url)
             self.assertEqual(resp.status, 202)
 
             key = ('GET', self.url)
@@ -157,8 +178,9 @@ class AIOResponsesTestCase(TestCase):
             self.assertEqual(m.requests[key][0].kwargs,
                              {'allow_redirects': True})
 
+    @asyncio.coroutine
     def test_address_as_instance_of_url_combined_with_pass_through(self):
-        external_api = 'http://google.com'
+        external_api = 'http://httpbin.org/status/201'
 
         @asyncio.coroutine
         def doit():
@@ -170,7 +192,7 @@ class AIOResponsesTestCase(TestCase):
 
         with aioresponses(passthrough=[external_api]) as m:
             m.get(self.url, status=200)
-            api, ext = self.loop.run_until_complete(doit())
+            api, ext = yield from doit()
 
             self.assertEqual(api.status, 200)
-            self.assertEqual(ext.status, 200)
+            self.assertEqual(ext.status, 201)

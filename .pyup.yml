@@ -4,4 +4,5 @@ requirements:
   - requirements.txt:
       pin: False
   - requirements-dev.txt:
+      update: False
       pin: False
