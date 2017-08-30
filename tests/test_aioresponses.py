@@ -77,6 +77,20 @@ class AIOResponsesTestCase(TestCase):
         self.assertEqual(response.headers[hdrs.CONTENT_TYPE], 'text/html')
 
     @aioresponses()
+    @asyncio.coroutine
+    def test_returned_response_raw_headers(self, m):
+        m.get(self.url,
+              content_type='text/html',
+              headers={'Connection': 'keep-alive'})
+        response = yield from self.session.get(self.url)
+        expected_raw_headers = (
+            (b'Content-Type', b'text/html'),
+            (b'Connection', b'keep-alive')
+        )
+
+        self.assertEqual(response.raw_headers, expected_raw_headers)
+
+    @aioresponses()
     def test_method_dont_match(self, m):
         m.get(self.url)
         with self.assertRaises(ClientConnectionError):
@@ -197,3 +211,13 @@ class AIOResponsesTestCase(TestCase):
 
             self.assertEqual(api.status, 200)
             self.assertEqual(ext.status, 201)
+
+    @aioresponses()
+    @asyncio.coroutine
+    def test_custom_response_class(self, m):
+        class CustomClientResponse(ClientResponse):
+            pass
+
+        m.get(self.url, body='Test', response_class=CustomClientResponse)
+        resp = yield from self.session.get(self.url)
+        self.assertTrue(isinstance(resp, CustomClientResponse))

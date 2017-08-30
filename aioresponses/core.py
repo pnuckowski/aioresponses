@@ -23,7 +23,8 @@ class UrlResponse(object):
                  status: int = 200, body: str = '',
                  exception: 'Exception' = None,
                  headers: Dict = None, payload: Dict = None,
-                 content_type: str = 'application/json', ):
+                 content_type: str = 'application/json',
+                 response_class=None):
         self.url = self.parse_url(url)
         self.method = method.lower()
         self.status = status
@@ -35,9 +36,11 @@ class UrlResponse(object):
         self.exception = exception
         self.headers = headers
         self.content_type = content_type
+        self.response_class = response_class or ClientResponse
 
     def parse_url(self, url: str) -> str:
         """Normalize url to make comparisons."""
+        url = str(url)
         _url = url.split('?')[0]
         query = urlencode(sorted(parse_qsl(urlparse(url).query)))
 
@@ -51,17 +54,29 @@ class UrlResponse(object):
     def build_response(self) -> 'ClientResponse':
         if isinstance(self.exception, Exception):
             raise self.exception
-        self.resp = ClientResponse(self.method, URL(self.url))
+        self.resp = self.response_class(self.method, URL(self.url))
         # we need to initialize headers manually
         self.resp.headers = CIMultiDict({hdrs.CONTENT_TYPE: self.content_type})
         if self.headers:
             self.resp.headers.update(self.headers)
+            self.resp.raw_headers = self._build_raw_headers(self.resp.headers)
         self.resp.status = self.status
         self.resp.content = StreamReader()
         self.resp.content.feed_data(self.body)
         self.resp.content.feed_eof()
 
         return self.resp
+
+    def _build_raw_headers(self, headers):
+        """
+        Convert a dict of headers to a tuple of tuples
+
+        Mimics the format of ClientResponse.
+        """
+        raw_headers = []
+        for k, v in headers.items():
+            raw_headers.append((k.encode('utf8'), v.encode('utf8')))
+        return tuple(raw_headers)
 
 
 class aioresponses(object):
@@ -145,7 +160,8 @@ class aioresponses(object):
             exception: 'Exception' = None,
             content_type: str = 'application/json',
             payload: Dict = None,
-            headers: Dict = None) -> None:
+            headers: Dict = None,
+            response_class=None) -> None:
         self._responses.append(UrlResponse(
             url,
             method=method,
@@ -155,6 +171,7 @@ class aioresponses(object):
             exception=exception,
             payload=payload,
             headers=headers,
+            response_class=response_class,
         ))
 
     def match(self, method: str, url: str) -> 'ClientResponse':
