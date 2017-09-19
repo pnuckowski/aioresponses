@@ -38,6 +38,7 @@ class UrlResponse(object):
 
     def parse_url(self, url: str) -> str:
         """Normalize url to make comparisons."""
+        url = str(url)
         _url = url.split('?')[0]
         query = urlencode(sorted(parse_qsl(urlparse(url).query)))
 
