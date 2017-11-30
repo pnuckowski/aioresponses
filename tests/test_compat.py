@@ -5,6 +5,7 @@ from aioresponses.compat import (
     _vanilla_merge_url_params, _yarl_merge_url_params, URL
 )
 
+
 @ddt
 class CompatTestCase(TestCase):
     use_default_loop = False
@@ -47,4 +48,3 @@ class CompatTestCase(TestCase):
         if func in self._get_merge_functions():
             expected_url = 'http://example.com/api?foo=bar&x=42#fragment'
             self.assertEqual(func(self.url, {'x': 42}), expected_url)
-
