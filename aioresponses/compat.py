@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
 from urllib.parse import urlsplit, urlencode, SplitResult, urlunsplit
 
 try:
@@ -13,7 +14,7 @@ except ImportError:
 __all__ = ['URL', 'merge_url_params']
 
 
-def _vanilla_merge_url_params(url: str, params: dict) -> str:
+def _vanilla_merge_url_params(url: str, params: Optional[dict]) -> str:
     if not params:
         return url
     url_split = urlsplit(url)
@@ -34,7 +35,7 @@ def _vanilla_merge_url_params(url: str, params: dict) -> str:
     return urlunsplit(new)
 
 
-def _yarl_merge_url_params(url: str, params: dict) -> str:
+def _yarl_merge_url_params(url: str, params: Optional[dict]) -> str:
     if not params:
         return url
 

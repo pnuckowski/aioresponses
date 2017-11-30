@@ -194,9 +194,7 @@ class aioresponses(object):
                       **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
 
-        params = kwargs.get('params')
-        if params:
-            url = merge_url_params(url, params)
+        url = merge_url_params(url, kwargs.get('params'))
 
         for prefix in self._passthrough:
             if str(url).startswith(prefix):
