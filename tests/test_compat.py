@@ -11,7 +11,8 @@ class CompatTestCase(TestCase):
     use_default_loop = False
 
     def setUp(self):
-        self.url = 'http://example.com/api?foo=bar#fragment'
+        self.url_with_parameters = 'http://example.com/api?foo=bar#fragment'
+        self.url_without_parameters = 'http://example.com/api?#fragment'
         self.yarn_available = isinstance(URL, str)
 
     def _get_merge_functions(self):
@@ -30,7 +31,10 @@ class CompatTestCase(TestCase):
     )
     def test_no_params_returns_same_url(self, func):
         if func in self._get_merge_functions():
-            self.assertEqual(func(self.url, None), self.url)
+            self.assertEqual(
+                func(self.url_with_parameters, None),
+                self.url_with_parameters
+            )
 
     @data(
         _vanilla_merge_url_params,
@@ -38,13 +42,31 @@ class CompatTestCase(TestCase):
     )
     def test_empty_params_returns_same_url(self, func):
         if func in self._get_merge_functions():
-            self.assertEqual(func(self.url, {}), self.url)
+            self.assertEqual(
+                func(self.url_with_parameters, {}),
+                self.url_with_parameters
+            )
 
     @data(
         _vanilla_merge_url_params,
         _yarl_merge_url_params
     )
-    def test_params_returns_corrected_url(self, func):
+    def test_both_with_params_returns_corrected_url(self, func):
         if func in self._get_merge_functions():
             expected_url = 'http://example.com/api?foo=bar&x=42#fragment'
-            self.assertEqual(func(self.url, {'x': 42}), expected_url)
+            self.assertEqual(
+                func(self.url_with_parameters, {'x': 42}),
+                expected_url
+            )
+
+    @data(
+        _vanilla_merge_url_params,
+        _yarl_merge_url_params
+    )
+    def test_base_without_params_returns_corrected_url(self, func):
+        if func in self._get_merge_functions():
+            expected_url = 'http://example.com/api?x=42#fragment'
+            self.assertEqual(
+                func(self.url_without_parameters, {'x': 42}),
+                expected_url
+            )
