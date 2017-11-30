@@ -26,13 +26,15 @@ class AIOResponsesTestCase(TestCase):
 
     @asyncio.coroutine
     def setUp(self):
-        self.url = 'http://example.com/api'
+        self.url = 'http://example.com/api?foo=bar#fragment'
         self.session = ClientSession()
         super().setUp()
 
     @asyncio.coroutine
     def tearDown(self):
-        self.session.close()
+        close_result = self.session.close()
+        if close_result is not None:
+            yield from close_result
         super().tearDown()
 
     @data(
@@ -89,6 +91,24 @@ class AIOResponsesTestCase(TestCase):
         )
 
         self.assertEqual(response.raw_headers, expected_raw_headers)
+
+    @aioresponses()
+    @asyncio.coroutine
+    def test_returned_instance_and_params_handling(self, m):
+        expected_url = 'http://example.com/api?foo=bar&x=42#fragment'
+        m.get(expected_url)
+        response = yield from self.session.get(self.url, params={'x': 42})
+        self.assertIsInstance(response, ClientResponse)
+        self.assertEqual(response.status, 200)
+
+        expected_url = 'http://example.com/api?x=42#fragment'
+        m.get(expected_url)
+        response = yield from self.session.get(
+            'http://example.com/api#fragment',
+            params={'x': 42}
+        )
+        self.assertIsInstance(response, ClientResponse)
+        self.assertEqual(response.status, 200)
 
     @aioresponses()
     def test_method_dont_match(self, m):

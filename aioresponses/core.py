@@ -13,7 +13,7 @@ from collections import namedtuple
 from functools import wraps
 from multidict import CIMultiDict
 
-from .compat import URL
+from .compat import URL, merge_url_params
 
 
 class UrlResponse(object):
@@ -193,6 +193,11 @@ class aioresponses(object):
                       method: str, url: str, *args: Tuple,
                       **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
+
+        params = kwargs.get('params')
+        if params:
+            url = merge_url_params(url, params)
+
         for prefix in self._passthrough:
             if str(url).startswith(prefix):
                 return (yield from self.patcher.temp_original(
