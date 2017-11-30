@@ -2,9 +2,8 @@ from unittest import TestCase
 
 from ddt import ddt, data
 from aioresponses.compat import (
-    _vanilla_merge_url_params, _yarl_merge_url_params
+    _vanilla_merge_url_params, _yarl_merge_url_params, URL
 )
-
 
 @ddt
 class CompatTestCase(TestCase):
@@ -12,27 +11,40 @@ class CompatTestCase(TestCase):
 
     def setUp(self):
         self.url = 'http://example.com/api?foo=bar#fragment'
+        self.yarn_available = isinstance(URL, str)
 
+    def _get_merge_functions(self):
+        if self.yarn_available:
+            return {
+                _vanilla_merge_url_params,
+                _yarl_merge_url_params
+            }
+        return {
+            _vanilla_merge_url_params,
+        }
 
     @data(
         _vanilla_merge_url_params,
         _yarl_merge_url_params
     )
     def test_no_params_returns_same_url(self, func):
-        self.assertEqual(func(self.url, None), self.url)
+        if func in self._get_merge_functions():
+            self.assertEqual(func(self.url, None), self.url)
 
     @data(
         _vanilla_merge_url_params,
         _yarl_merge_url_params
     )
     def test_empty_params_returns_same_url(self, func):
-        self.assertEqual(func(self.url, {}), self.url)
+        if func in self._get_merge_functions():
+            self.assertEqual(func(self.url, {}), self.url)
 
     @data(
         _vanilla_merge_url_params,
         _yarl_merge_url_params
     )
     def test_params_returns_corrected_url(self, func):
-        expected_url = 'http://example.com/api?foo=bar&x=42#fragment'
-        self.assertEqual(func(self.url, {'x': 42}), expected_url)
+        if func in self._get_merge_functions():
+            expected_url = 'http://example.com/api?foo=bar&x=42#fragment'
+            self.assertEqual(func(self.url, {'x': 42}), expected_url)
 
