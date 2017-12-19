@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
+from aiohttp import __version__ as aiohttp_version
 from typing import Optional
 from urllib.parse import urlsplit, urlencode, SplitResult, urlunsplit
 
 try:
     from yarl import URL
-    __yarl_available = True
+    print(aiohttp_version)
+    if aiohttp_version.split('.')[:2] == ['1', '0']:
+        # yarl was introduced in version 1.1
+        raise ImportError
+    yarl_available = True
 except ImportError:
     class URL(str):
         pass
-    __yarl_available = False
+    yarl_available = False
 
 
 __all__ = ['URL', 'merge_url_params']
@@ -48,7 +53,7 @@ def _yarl_merge_url_params(url: str, params: Optional[dict]) -> str:
         return str(url.with_query(params))
 
 
-if __yarl_available:
+if yarl_available:
     merge_url_params = _yarl_merge_url_params
 else:
     merge_url_params = _vanilla_merge_url_params
