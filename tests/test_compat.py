@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from ddt import ddt, data
 from aioresponses.compat import (
-    _vanilla_merge_url_params, _yarl_merge_url_params, URL
+    _vanilla_merge_url_params, _yarl_merge_url_params, yarl_available
 )
 
 
@@ -13,10 +13,9 @@ class CompatTestCase(TestCase):
     def setUp(self):
         self.url_with_parameters = 'http://example.com/api?foo=bar#fragment'
         self.url_without_parameters = 'http://example.com/api?#fragment'
-        self.yarn_available = not isinstance(URL, str)
 
     def _get_merge_functions(self):
-        if self.yarn_available:
+        if yarl_available:
             return {
                 _vanilla_merge_url_params,
                 _yarl_merge_url_params
