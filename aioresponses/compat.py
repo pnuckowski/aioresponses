@@ -5,7 +5,6 @@ from urllib.parse import urlsplit, urlencode, SplitResult, urlunsplit
 
 try:
     from yarl import URL
-    print(aiohttp_version)
     if aiohttp_version.split('.')[:2] == ['1', '0']:
         # yarl was introduced in version 1.1
         raise ImportError
