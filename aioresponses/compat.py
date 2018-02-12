@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from aiohttp import __version__ as aiohttp_version
+from aiohttp import __version__ as aiohttp_version, StreamReader
 from typing import Optional
 from urllib.parse import urlsplit, urlencode, SplitResult, urlunsplit
 
@@ -13,6 +13,17 @@ except ImportError:
     class URL(str):
         pass
     yarl_available = False
+
+
+if int(aiohttp_version.split('.')[0]) >= 3:
+    from aiohttp.client_proto import ResponseHandler
+
+    def stream_reader():
+        protocol = ResponseHandler()
+        return StreamReader(protocol)
+else:
+    def stream_reader():
+        return StreamReader()
 
 
 __all__ = ['URL', 'merge_url_params']
