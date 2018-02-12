@@ -189,8 +189,8 @@ class aioresponses(object):
         return resp
 
     async def _request_mock(self, orig_self: client.ClientSession,
-                      method: str, url: str, *args: Tuple,
-                      **kwargs: Dict) -> 'ClientResponse':
+                            method: str, url: str, *args: Tuple,
+                            **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
 
         url = merge_url_params(url, kwargs.get('params'))
