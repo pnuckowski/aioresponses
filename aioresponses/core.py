@@ -6,15 +6,12 @@ from typing import Dict, Tuple
 from unittest.mock import patch
 from urllib.parse import urlparse, parse_qsl, urlencode
 
-from aiohttp import (
-    hdrs, ClientResponse, ClientConnectionError, StreamReader, client
-)
-from aiohttp.client_proto import ResponseHandler
+from aiohttp import ClientConnectionError, ClientResponse, client, hdrs
 from collections import namedtuple
 from functools import wraps
 from multidict import CIMultiDict
 
-from .compat import URL, merge_url_params
+from .compat import URL, merge_url_params, stream_reader
 
 
 class UrlResponse(object):
@@ -62,8 +59,7 @@ class UrlResponse(object):
             self.resp.headers.update(self.headers)
             self.resp.raw_headers = self._build_raw_headers(self.resp.headers)
         self.resp.status = self.status
-        protocol = ResponseHandler()
-        self.resp.content = StreamReader(protocol)
+        self.resp.content = stream_reader()
         self.resp.content.feed_data(self.body)
         self.resp.content.feed_eof()
 
