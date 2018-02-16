@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 from unittest.mock import patch
 from urllib.parse import urlparse, parse_qsl, urlencode
 
@@ -51,9 +51,9 @@ class UrlResponse(object):
             return False
         return self.url == self.parse_url(url)
 
-    def build_response(self) -> 'ClientResponse':
+    def build_response(self) -> Union[ClientResponse, Exception]:
         if isinstance(self.exception, Exception):
-            raise self.exception
+            return self.exception
         self.resp = self.response_class(self.method, URL(self.url))
         # we need to initialize headers manually
         self.resp.headers = CIMultiDict({hdrs.CONTENT_TYPE: self.content_type})
@@ -186,6 +186,8 @@ class aioresponses(object):
 
         if i is not None:
             del self._responses[i]
+        if isinstance(resp, Exception):
+            raise resp
         return resp
 
     @asyncio.coroutine
