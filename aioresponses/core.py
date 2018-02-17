@@ -7,13 +7,13 @@ from unittest.mock import patch
 from urllib.parse import urlparse, parse_qsl, urlencode
 
 from aiohttp import (
-    hdrs, ClientResponse, ClientConnectionError, StreamReader, client
+    hdrs, ClientResponse, ClientConnectionError, client
 )
 from collections import namedtuple
 from functools import wraps
 from multidict import CIMultiDict
 
-from .compat import URL, merge_url_params
+from .compat import URL, merge_url_params, stream_reader
 
 
 class UrlResponse(object):
@@ -61,7 +61,7 @@ class UrlResponse(object):
             self.resp.headers.update(self.headers)
             self.resp.raw_headers = self._build_raw_headers(self.resp.headers)
         self.resp.status = self.status
-        self.resp.content = StreamReader()
+        self.resp.content = stream_reader()
         self.resp.content.feed_data(self.body)
         self.resp.content.feed_eof()
 
@@ -190,17 +190,16 @@ class aioresponses(object):
             raise resp
         return resp
 
-    @asyncio.coroutine
-    def _request_mock(self, orig_self: client.ClientSession,
-                      method: str, url: str, *args: Tuple,
-                      **kwargs: Dict) -> 'ClientResponse':
+    async def _request_mock(self, orig_self: client.ClientSession,
+                            method: str, url: str, *args: Tuple,
+                            **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
 
         url = merge_url_params(url, kwargs.get('params'))
 
         for prefix in self._passthrough:
             if str(url).startswith(prefix):
-                return (yield from self.patcher.temp_original(
+                return (await self.patcher.temp_original(
                     orig_self, method, url, *args, **kwargs
                 ))
 
