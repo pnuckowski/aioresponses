@@ -241,3 +241,24 @@ class AIOResponsesTestCase(TestCase):
         m.get(self.url, body='Test', response_class=CustomClientResponse)
         resp = yield from self.session.get(self.url)
         self.assertTrue(isinstance(resp, CustomClientResponse))
+
+    @aioresponses()
+    def test_exceptions_in_the_middle_of_responses(self, mocked):
+
+        mocked.get(self.url, payload={}, status=204)
+        mocked.get(self.url, exception=ValueError('oops'), )
+        mocked.get(self.url, payload={}, status=204)
+        mocked.get(self.url, exception=ValueError('oops'), )
+        mocked.get(self.url, payload={}, status=200)
+
+        @asyncio.coroutine
+        def doit():
+            return (yield from self.session.get(self.url))
+
+        self.assertEqual(self.loop.run_until_complete(doit()).status, 204)
+        with self.assertRaises(ValueError):
+            self.loop.run_until_complete(doit())
+        self.assertEqual(self.loop.run_until_complete(doit()).status, 204)
+        with self.assertRaises(ValueError):
+            self.loop.run_until_complete(doit())
+        self.assertEqual(self.loop.run_until_complete(doit()).status, 200)
