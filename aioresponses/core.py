@@ -109,11 +109,10 @@ class aioresponses(object):
 
         if asyncio.iscoroutinefunction(f):
             @wraps(f)
-            @asyncio.coroutine
-            def wrapped(*args, **kwargs):
+            async def wrapped(*args, **kwargs):
                 with self as ctx:
                     args, kwargs = _pack_arguments(ctx, *args, **kwargs)
-                    return (yield from f(*args, **kwargs))
+                    return await f(*args, **kwargs)
         else:
             @wraps(f)
             def wrapped(*args, **kwargs):
