@@ -38,6 +38,11 @@ Installing
 
     $ pip install aioresponses
 
+Supported versions
+------------------
+- Python 3.5.3+
+- aiohttp>=2.0.0,<4.0.0
+
 Usage
 --------
 
