@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-
 import asyncio
 import json
-from typing import Dict, Tuple, Union
-from unittest.mock import patch
-from urllib.parse import urlparse, parse_qsl, urlencode
-
-from aiohttp import (
-    hdrs, ClientResponse, ClientConnectionError, client
-)
 from collections import namedtuple
+from distutils.version import StrictVersion
 from functools import wraps
+from typing import Dict, Tuple, Union
+from unittest.mock import Mock, patch
+from urllib.parse import parse_qsl, urlencode, urlparse
+
+import aiohttp
+from aiohttp import ClientConnectionError, ClientResponse, client, hdrs
+from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict
 
 from .compat import URL, merge_url_params, stream_reader
@@ -54,7 +54,20 @@ class UrlResponse(object):
     def build_response(self) -> Union[ClientResponse, Exception]:
         if isinstance(self.exception, Exception):
             return self.exception
-        self.resp = self.response_class(self.method, URL(self.url))
+        kwargs = {}
+        if StrictVersion(aiohttp.__version__) >= StrictVersion('3.1.0'):
+            loop = Mock()
+            loop.get_debug = Mock()
+            loop.get_debug.return_value = True
+            kwargs['request_info'] = Mock()
+            kwargs['writer'] = Mock()
+            kwargs['continue100'] = None
+            kwargs['timer'] = TimerNoop()
+            kwargs['auto_decompress'] = True
+            kwargs['traces'] = []
+            kwargs['loop'] = loop
+            kwargs['session'] = None
+        self.resp = self.response_class(self.method, URL(self.url), **kwargs)
         # we need to initialize headers manually
         self.resp.headers = CIMultiDict({hdrs.CONTENT_TYPE: self.content_type})
         if self.headers:
