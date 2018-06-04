@@ -15,6 +15,8 @@ from multidict import CIMultiDict
 
 from .compat import URL, merge_url_params, stream_reader
 
+VERSION = StrictVersion(aiohttp.__version__)
+
 
 class UrlResponse(object):
     resp = None
@@ -55,7 +57,7 @@ class UrlResponse(object):
         if isinstance(self.exception, Exception):
             return self.exception
         kwargs = {}
-        if StrictVersion(aiohttp.__version__) >= StrictVersion('3.1.0'):
+        if VERSION >= StrictVersion('3.1.0'):
             loop = Mock()
             loop.get_debug = Mock()
             loop.get_debug.return_value = True
@@ -63,7 +65,7 @@ class UrlResponse(object):
             kwargs['writer'] = Mock()
             kwargs['continue100'] = None
             kwargs['timer'] = TimerNoop()
-            if StrictVersion(aiohttp.__version__) >= StrictVersion('3.3.0'):
+            if VERSION >= StrictVersion('3.3.0'):
                 pass
             else:
                 kwargs['auto_decompress'] = True
@@ -76,7 +78,7 @@ class UrlResponse(object):
         if self.headers:
             headers.update(self.headers)
         raw_headers = self._build_raw_headers(headers)
-        if StrictVersion(aiohttp.__version__) >= StrictVersion('3.3.0'):
+        if VERSION >= StrictVersion('3.3.0'):
             # Reified attributes
             self.resp._headers = headers
             self.resp._raw_headers = raw_headers
