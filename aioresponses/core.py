@@ -15,6 +15,8 @@ from multidict import CIMultiDict
 
 from .compat import URL, merge_url_params, stream_reader
 
+VERSION = StrictVersion(aiohttp.__version__)
+
 
 class UrlResponse(object):
     resp = None
@@ -55,7 +57,7 @@ class UrlResponse(object):
         if isinstance(self.exception, Exception):
             return self.exception
         kwargs = {}
-        if StrictVersion(aiohttp.__version__) >= StrictVersion('3.1.0'):
+        if VERSION >= StrictVersion('3.1.0'):
             loop = Mock()
             loop.get_debug = Mock()
             loop.get_debug.return_value = True
@@ -63,16 +65,26 @@ class UrlResponse(object):
             kwargs['writer'] = Mock()
             kwargs['continue100'] = None
             kwargs['timer'] = TimerNoop()
-            kwargs['auto_decompress'] = True
+            if VERSION >= StrictVersion('3.3.0'):
+                pass
+            else:
+                kwargs['auto_decompress'] = True
             kwargs['traces'] = []
             kwargs['loop'] = loop
             kwargs['session'] = None
         self.resp = self.response_class(self.method, URL(self.url), **kwargs)
         # we need to initialize headers manually
-        self.resp.headers = CIMultiDict({hdrs.CONTENT_TYPE: self.content_type})
+        headers = CIMultiDict({hdrs.CONTENT_TYPE: self.content_type})
         if self.headers:
-            self.resp.headers.update(self.headers)
-            self.resp.raw_headers = self._build_raw_headers(self.resp.headers)
+            headers.update(self.headers)
+        raw_headers = self._build_raw_headers(headers)
+        if VERSION >= StrictVersion('3.3.0'):
+            # Reified attributes
+            self.resp._headers = headers
+            self.resp._raw_headers = raw_headers
+        else:
+            self.resp.headers = headers
+            self.resp.raw_headers = raw_headers
         self.resp.status = self.status
         self.resp.content = stream_reader()
         self.resp.content.feed_data(self.body)
