@@ -26,7 +26,8 @@ class UrlResponse(object):
                  exception: 'Exception' = None,
                  headers: Dict = None, payload: Dict = None,
                  content_type: str = 'application/json',
-                 response_class=None):
+                 response_class=None,
+                 repeat=False):
         self.url = self.parse_url(url)
         self.method = method.lower()
         self.status = status
@@ -39,6 +40,7 @@ class UrlResponse(object):
         self.headers = headers
         self.content_type = content_type
         self.response_class = response_class or ClientResponse
+        self.repeat = repeat
 
     def parse_url(self, url: str) -> str:
         """Normalize url to make comparisons."""
@@ -185,7 +187,8 @@ class aioresponses(object):
             content_type: str = 'application/json',
             payload: Dict = None,
             headers: Dict = None,
-            response_class=None) -> None:
+            response_class=None,
+            repeat=False) -> None:
         self._responses.append(UrlResponse(
             url,
             method=method,
@@ -196,6 +199,7 @@ class aioresponses(object):
             payload=payload,
             headers=headers,
             response_class=response_class,
+            repeat=repeat
         ))
 
     def match(self, method: str, url: str) -> 'ClientResponse':
@@ -208,7 +212,7 @@ class aioresponses(object):
             (None, None)
         )
 
-        if i is not None:
+        if i is not None and self._responses[i].repeat is False:
             del self._responses[i]
         if isinstance(resp, Exception):
             raise resp
