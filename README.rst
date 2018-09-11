@@ -169,6 +169,20 @@ for convenience use *payload* argument to mock out json response. Example below.
         # will throw an exception.
 
 
+**aioresponses can be used in a pytest fixture**
+
+.. code:: python
+
+    import pytest
+    from aioresponses import aioresponses
+
+    @pytest.fixture
+    def mock_aioresponse():
+        with aioresponses() as m:
+            yield m
+
+
+
 
 Features
 --------
