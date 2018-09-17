@@ -134,6 +134,28 @@ for convenience use *payload* argument to mock out json response. Example below.
         assert resp1.status == 500
         assert resp2.status == 200
 
+**match URLs with regular expressions**
+
+.. code:: python
+
+    import asyncio
+    import re
+    import aiohttp
+    from aioresponses import aioresponses
+
+    @aioresponses()
+    def test_regex(m):
+        loop = asyncio.get_event_loop()
+        session = aiohttp.ClientSession()
+        m.get(re.compile('https?:\/\/example.com.*'), status=200)
+
+        resp1 = loop.run_until_complete(session.get('http://example.com/index.html'))
+        resp2 = loop.run_until_complete(session.get('https://example.com/about.html'))
+
+        assert resp1.status == 200
+        assert resp2.status == 200
+
+
 
 **allows to passthrough to a specified list of servers**
 
@@ -204,3 +226,4 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+

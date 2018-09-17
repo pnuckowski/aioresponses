@@ -21,13 +21,16 @@ VERSION = StrictVersion(aiohttp.__version__)
 class UrlResponse(object):
     resp = None
 
-    def __init__(self, url: str, method: str = hdrs.METH_GET,
+    def __init__(self, match_url, method: str = hdrs.METH_GET,
                  status: int = 200, body: str = '',
                  exception: 'Exception' = None,
                  headers: Dict = None, payload: Dict = None,
                  content_type: str = 'application/json',
                  response_class=None):
-        self.url = self.parse_url(url)
+        if type(match_url) == str:
+            self.match_url = self.parse_url(match_url)
+        else:
+            self.match_url = match_url
         self.method = method.lower()
         self.status = status
         if payload is not None:
@@ -51,7 +54,12 @@ class UrlResponse(object):
     def match(self, method: str, url: str) -> bool:
         if self.method != method.lower():
             return False
-        return self.url == self.parse_url(url)
+        self.url = url
+        if type(self.match_url) == str:
+            return self.match_url == self.parse_url(url)
+        else:
+            matching = bool(self.match_url.match(url))
+            return matching
 
     def build_response(self) -> Union[ClientResponse, Exception]:
         if isinstance(self.exception, Exception):
