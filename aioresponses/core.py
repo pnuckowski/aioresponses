@@ -13,7 +13,7 @@ from aiohttp import ClientConnectionError, ClientResponse, client, hdrs
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict
 
-from .compat import URL, merge_url_params, stream_reader
+from .compat import URL, merge_url_params, stream_reader_factory, Pattern
 
 VERSION = StrictVersion(aiohttp.__version__)
 
@@ -21,14 +21,19 @@ VERSION = StrictVersion(aiohttp.__version__)
 class UrlResponse(object):
     resp = None
 
-    def __init__(self, url: str, method: str = hdrs.METH_GET,
+    def __init__(self, url: Union[str, Pattern], method: str = hdrs.METH_GET,
                  status: int = 200, body: str = '',
                  exception: 'Exception' = None,
                  headers: Dict = None, payload: Dict = None,
                  content_type: str = 'application/json',
                  response_class=None,
                  repeat=False):
-        self.url = self.parse_url(url)
+        if isinstance(url, Pattern):
+            self.url_or_pattern = url
+            self.match_func = self.match_regexp
+        else:
+            self.url_or_pattern = self.parse_url(url)
+            self.match_func = self.match_str
         self.method = method.lower()
         self.status = status
         if payload is not None:
@@ -50,12 +55,19 @@ class UrlResponse(object):
 
         return '{}?{}'.format(_url, query) if query else _url
 
+    def match_str(self, url: str) -> bool:
+        return self.url_or_pattern == self.parse_url(url)
+
+    def match_regexp(self, url: str) -> bool:
+
+        return bool(self.url_or_pattern.match(url))
+
     def match(self, method: str, url: str) -> bool:
         if self.method != method.lower():
             return False
-        return self.url == self.parse_url(url)
+        return self.match_func(url)
 
-    def build_response(self) -> Union[ClientResponse, Exception]:
+    def build_response(self, url: str) -> Union[ClientResponse, Exception]:
         if isinstance(self.exception, Exception):
             return self.exception
         kwargs = {}
@@ -74,7 +86,7 @@ class UrlResponse(object):
             kwargs['traces'] = []
             kwargs['loop'] = loop
             kwargs['session'] = None
-        self.resp = self.response_class(self.method, URL(self.url), **kwargs)
+        self.resp = self.response_class(self.method, URL(url), **kwargs)
         # we need to initialize headers manually
         headers = CIMultiDict({hdrs.CONTENT_TYPE: self.content_type})
         if self.headers:
@@ -88,7 +100,7 @@ class UrlResponse(object):
             self.resp.headers = headers
             self.resp.raw_headers = raw_headers
         self.resp.status = self.status
-        self.resp.content = stream_reader()
+        self.resp.content = stream_reader_factory()
         self.resp.content.feed_data(self.body)
         self.resp.content.feed_eof()
 
@@ -205,7 +217,7 @@ class aioresponses(object):
     def match(self, method: str, url: str) -> 'ClientResponse':
         i, resp = next(
             iter(
-                [(i, r.build_response())
+                [(i, r.build_response(url))
                  for i, r in enumerate(self._responses)
                  if r.match(method, url)]
             ),

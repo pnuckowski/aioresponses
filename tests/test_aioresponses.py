@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
+import re
 from unittest.mock import patch
 
 from aiohttp import hdrs
@@ -36,6 +37,10 @@ class AIOResponsesTestCase(TestCase):
         if close_result is not None:
             yield from close_result
         super().tearDown()
+
+    @asyncio.coroutine
+    def request(self, url: str):
+        return (yield from self.session.get(url))
 
     @data(
         hdrs.METH_HEAD,
@@ -244,7 +249,6 @@ class AIOResponsesTestCase(TestCase):
 
     @aioresponses()
     def test_exceptions_in_the_middle_of_responses(self, mocked):
-
         mocked.get(self.url, payload={}, status=204)
         mocked.get(self.url, exception=ValueError('oops'), )
         mocked.get(self.url, payload={}, status=204)
@@ -262,3 +266,24 @@ class AIOResponsesTestCase(TestCase):
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(doit())
         self.assertEqual(self.loop.run_until_complete(doit()).status, 200)
+
+    @aioresponses()
+    @asyncio.coroutine
+    def test_request_should_match_regexp(self, mocked):
+        mocked.get(
+            re.compile(r'^http://example\.com/api\?foo=.*$'),
+            payload={}, status=200
+        )
+
+        response = yield from self.request(self.url)
+        self.assertEqual(response.status, 200)
+
+    @aioresponses()
+    @asyncio.coroutine
+    def test_request_does_not_match_regexp(self, mocked):
+        mocked.get(
+            re.compile(r'^http://exampleexample\.com/api\?foo=.*$'),
+            payload={}, status=200
+        )
+        with self.assertRaises(ClientConnectionError):
+            yield from self.request(self.url)
