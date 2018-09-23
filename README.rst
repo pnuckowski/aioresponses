@@ -135,6 +135,27 @@ for convenience use *payload* argument to mock out json response. Example below.
         assert resp2.status == 200
 
 
+**match URLs with regular expressions**
+
+.. code:: python
+
+    import asyncio
+    import aiohttp
+    import re
+    from aioresponses import aioresponses
+
+    @aioresponses()
+    def test_regexp_example(m):
+        loop = asyncio.get_event_loop()
+        session = aiohttp.ClientSession()
+        pattern = re.compile(r'^http://example\.com/api\?foo=.*$')
+        m.get('http://example.com', status=200)
+
+        resp = loop.run_until_complete(session.get('http://example.com'))
+
+        assert resp.status == 200
+
+
 **allows to passthrough to a specified list of servers**
 
 .. code:: python

@@ -1,10 +1,19 @@
 # -*- coding: utf-8 -*-
-from aiohttp import __version__ as aiohttp_version, StreamReader
+import re
 from typing import Optional
 from urllib.parse import urlsplit, urlencode, SplitResult, urlunsplit
 
+from aiohttp import __version__ as aiohttp_version, StreamReader
+
+try:
+    Pattern = re._pattern_type
+except AttributeError:
+    # Python 3.7
+    Pattern = re.Pattern
+yarl_available = False
 try:
     from yarl import URL
+
     if aiohttp_version.split('.')[:2] == ['1', '0']:
         # yarl was introduced in version 1.1
         raise ImportError
@@ -12,21 +21,16 @@ try:
 except ImportError:
     class URL(str):
         pass
-    yarl_available = False
-
 
 if int(aiohttp_version.split('.')[0]) >= 3:
     from aiohttp.client_proto import ResponseHandler
 
-    def stream_reader():
+    def stream_reader_factory():
         protocol = ResponseHandler()
         return StreamReader(protocol)
 else:
-    def stream_reader():
+    def stream_reader_factory():
         return StreamReader()
-
-
-__all__ = ['URL', 'merge_url_params']
 
 
 def _vanilla_merge_url_params(url: str, params: Optional[dict]) -> str:
@@ -67,3 +71,5 @@ if yarl_available:
     merge_url_params = _yarl_merge_url_params
 else:
     merge_url_params = _vanilla_merge_url_params
+
+__all__ = ['URL', 'merge_url_params', 'stream_reader_factory', 'Pattern']
