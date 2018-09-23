@@ -59,7 +59,6 @@ class UrlResponse(object):
         return self.url_or_pattern == self.parse_url(url)
 
     def match_regexp(self, url: str) -> bool:
-
         return bool(self.url_or_pattern.match(url))
 
     def match(self, method: str, url: str) -> bool:
