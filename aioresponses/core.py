@@ -26,8 +26,9 @@ class UrlResponse(object):
                  exception: 'Exception' = None,
                  headers: Dict = None, payload: Dict = None,
                  content_type: str = 'application/json',
-                 response_class=None,
-                 repeat=False):
+                 response_class: 'ClientResponse' = None,
+                 timeout: bool = False,
+                 repeat: bool = False):
         if isinstance(url, Pattern):
             self.url_or_pattern = url
             self.match_func = self.match_regexp
@@ -42,6 +43,8 @@ class UrlResponse(object):
             body = str.encode(body)
         self.body = body
         self.exception = exception
+        if timeout:
+            self.exception = asyncio.TimeoutError('Connection timeout test')
         self.headers = headers
         self.content_type = content_type
         self.response_class = response_class or ClientResponse
@@ -66,7 +69,9 @@ class UrlResponse(object):
             return False
         return self.match_func(url)
 
-    def build_response(self, url: str) -> Union[ClientResponse, Exception]:
+    async def build_response(
+            self, url: str
+    ) -> 'Union[ClientResponse, Exception]':
         if isinstance(self.exception, Exception):
             return self.exception
         kwargs = {}
@@ -102,7 +107,6 @@ class UrlResponse(object):
         self.resp.content = stream_reader_factory()
         self.resp.content.feed_data(self.body)
         self.resp.content.feed_eof()
-
         return self.resp
 
     def _build_raw_headers(self, headers):
@@ -198,8 +202,9 @@ class aioresponses(object):
             content_type: str = 'application/json',
             payload: Dict = None,
             headers: Dict = None,
-            response_class=None,
-            repeat=False) -> None:
+            response_class: 'ClientResponse' = None,
+            repeat: bool = False,
+            timeout: bool = False) -> None:
         self._responses.append(UrlResponse(
             url,
             method=method,
@@ -210,18 +215,21 @@ class aioresponses(object):
             payload=payload,
             headers=headers,
             response_class=response_class,
-            repeat=repeat
+            repeat=repeat,
+            timeout=timeout,
         ))
 
-    def match(self, method: str, url: str) -> 'ClientResponse':
+    async def match(self, method: str, url: str) -> 'ClientResponse':
         i, resp = next(
             iter(
-                [(i, r.build_response(url))
+                [(i, r)
                  for i, r in enumerate(self._responses)
                  if r.match(method, url)]
             ),
             (None, None)
         )
+        if resp:
+            resp = await resp.build_response(url)
 
         if i is not None and self._responses[i].repeat is False:
             del self._responses[i]
@@ -242,12 +250,12 @@ class aioresponses(object):
                     orig_self, method, url, *args, **kwargs
                 ))
 
-        response = self.match(method, url)
+        response = await self.match(method, url)
         if response is None:
             raise ClientConnectionError(
                 'Connection refused: {} {}'.format(method, url)
             )
         key = (method, url)
-        self.requests.setdefault(key, list())
+        self.requests.setdefault(key, [])
         self.requests[key].append(self.method_call(args, kwargs))
         return response

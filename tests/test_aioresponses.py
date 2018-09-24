@@ -8,6 +8,7 @@ from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 from asynctest import fail_on
 from asynctest.case import TestCase
+from typing import Coroutine, Generator, Union
 
 from aioresponses.compat import URL
 
@@ -38,6 +39,9 @@ class AIOResponsesTestCase(TestCase):
             yield from close_result
         super().tearDown()
 
+    def run_async(self, coroutine: Union[Coroutine, Generator]):
+        return self.loop.run_until_complete(coroutine)
+
     @asyncio.coroutine
     def request(self, url: str):
         return (yield from self.session.get(url))
@@ -61,7 +65,7 @@ class AIOResponsesTestCase(TestCase):
     @aioresponses()
     def test_returned_instance(self, m):
         m.get(self.url)
-        response = self.loop.run_until_complete(self.session.get(self.url))
+        response = self.run_async(self.session.get(self.url))
         self.assertIsInstance(response, ClientResponse)
 
     @aioresponses()
@@ -119,7 +123,7 @@ class AIOResponsesTestCase(TestCase):
     def test_method_dont_match(self, m):
         m.get(self.url)
         with self.assertRaises(ClientConnectionError):
-            self.loop.run_until_complete(self.session.post(self.url))
+            self.run_async(self.session.post(self.url))
 
     @aioresponses()
     @asyncio.coroutine
@@ -259,13 +263,13 @@ class AIOResponsesTestCase(TestCase):
         def doit():
             return (yield from self.session.get(self.url))
 
-        self.assertEqual(self.loop.run_until_complete(doit()).status, 204)
+        self.assertEqual(self.run_async(doit()).status, 204)
         with self.assertRaises(ValueError):
-            self.loop.run_until_complete(doit())
-        self.assertEqual(self.loop.run_until_complete(doit()).status, 204)
+            self.run_async(doit())
+        self.assertEqual(self.run_async(doit()).status, 204)
         with self.assertRaises(ValueError):
-            self.loop.run_until_complete(doit())
-        self.assertEqual(self.loop.run_until_complete(doit()).status, 200)
+            self.run_async(doit())
+        self.assertEqual(self.run_async(doit()).status, 200)
 
     @aioresponses()
     @asyncio.coroutine
@@ -287,3 +291,10 @@ class AIOResponsesTestCase(TestCase):
         )
         with self.assertRaises(ClientConnectionError):
             yield from self.request(self.url)
+
+    @aioresponses()
+    def test_timeout(self, mocked):
+        mocked.get(self.url, timeout=True)
+
+        with self.assertRaises(asyncio.TimeoutError):
+            self.run_async(self.request(self.url))
