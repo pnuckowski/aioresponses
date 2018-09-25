@@ -149,9 +149,9 @@ for convenience use *payload* argument to mock out json response. Example below.
         loop = asyncio.get_event_loop()
         session = aiohttp.ClientSession()
         pattern = re.compile(r'^http://example\.com/api\?foo=.*$')
-        m.get('http://example.com', status=200)
+        m.get(pattern, status=200)
 
-        resp = loop.run_until_complete(session.get('http://example.com'))
+        resp = loop.run_until_complete(session.get('http://example.com/api?foo=bar'))
 
         assert resp.status == 200
 
