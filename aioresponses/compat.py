@@ -33,9 +33,9 @@ else:  # pragma: no cover
 def merge_params(url: 'Union[URL, str]', params: 'Dict' = None) -> 'URL':
     url = URL(url)
     if params:
-        multi_params = MultiDict(url.query)
-        multi_params.extend(url.with_query(params).query)
-        url = url.with_query(multi_params)
+        query_params = MultiDict(url.query)
+        query_params.extend(url.with_query(params).query)
+        return url.with_query(query_params)
     return url
 
 
