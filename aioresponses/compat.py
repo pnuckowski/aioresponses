@@ -10,7 +10,7 @@ from yarl import URL
 
 try:
     Pattern = re._pattern_type
-except AttributeError:
+except AttributeError:  # pragma: no cover
     # Python 3.7
     Pattern = re.Pattern
 
@@ -19,13 +19,12 @@ VERSION = StrictVersion(__aioversion__)
 if VERSION >= StrictVersion('3.0.0'):
     from aiohttp.client_proto import ResponseHandler
 
-
     def stream_reader_factory():
         protocol = ResponseHandler()
         return StreamReader(protocol)
 
 
-else:
+else:  # pragma: no cover
 
     def stream_reader_factory():
         return StreamReader()

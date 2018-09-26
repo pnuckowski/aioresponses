@@ -7,14 +7,14 @@ from functools import wraps
 from typing import Dict, Tuple, Union, Optional, List  # noqa
 from unittest.mock import Mock, patch
 
-from aiohttp import ClientConnectionError, ClientResponse, client, hdrs
+from aiohttp import ClientConnectionError, ClientResponse, ClientSession, hdrs
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict
 
 from .compat import (
     URL,
-    stream_reader_factory,
     Pattern,
+    stream_reader_factory,
     merge_params,
     normalize_url,
     VERSION
@@ -29,8 +29,9 @@ class MockedResponse(object):
                  method: str = hdrs.METH_GET,
                  status: int = 200,
                  body: str = '',
+                 payload: Dict = None,
                  exception: 'Exception' = None,
-                 headers: Dict = None, payload: Dict = None,
+                 headers: Dict = None,
                  content_type: str = 'application/json',
                  response_class: 'ClientResponse' = None,
                  timeout: bool = False,
@@ -232,7 +233,7 @@ class aioresponses(object):
             raise resp
         return resp
 
-    async def _request_mock(self, orig_self: client.ClientSession,
+    async def _request_mock(self, orig_self: ClientSession,
                             method: str, url: 'Union[URL, str]',
                             *args: Tuple,
                             **kwargs: Dict) -> 'ClientResponse':
