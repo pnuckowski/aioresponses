@@ -6,20 +6,23 @@ from distutils.version import StrictVersion
 from functools import wraps
 from typing import Dict, Tuple, Union
 from unittest.mock import Mock, patch
-from urllib.parse import parse_qsl, urlencode, urlparse
+from urllib.parse import parse_qsl, urlencode
 
 import aiohttp
 from aiohttp import ClientConnectionError, ClientResponse, client, hdrs
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict
 
-from .compat import URL, merge_url_params, stream_reader_factory, Pattern
+from aioresponses.compat import merge_params, normalize_url
+from .compat import URL, stream_reader_factory, Pattern
 
 VERSION = StrictVersion(aiohttp.__version__)
+UrlType = Union[URL, str]
 
 
-class UrlResponse(object):
+class MockedResponse(object):
     resp = None
+    url_or_pattern = None  # type: Union[URL, Pattern]
 
     def __init__(self, url: Union[str, Pattern], method: str = hdrs.METH_GET,
                  status: int = 200, body: str = '',
@@ -33,7 +36,7 @@ class UrlResponse(object):
             self.url_or_pattern = url
             self.match_func = self.match_regexp
         else:
-            self.url_or_pattern = self.parse_url(url)
+            self.url_or_pattern = normalize_url(url)
             self.match_func = self.match_str
         self.method = method.lower()
         self.status = status
@@ -50,21 +53,13 @@ class UrlResponse(object):
         self.response_class = response_class or ClientResponse
         self.repeat = repeat
 
-    def parse_url(self, url: str) -> str:
-        """Normalize url to make comparisons."""
-        url = str(url)
-        _url = url.split('?')[0]
-        query = urlencode(sorted(parse_qsl(urlparse(url).query)))
+    def match_str(self, url: URL) -> bool:
+        return self.url_or_pattern == url
 
-        return '{}?{}'.format(_url, query) if query else _url
+    def match_regexp(self, url: URL) -> bool:
+        return bool(self.url_or_pattern.match(str(url)))
 
-    def match_str(self, url: str) -> bool:
-        return self.url_or_pattern == self.parse_url(url)
-
-    def match_regexp(self, url: str) -> bool:
-        return bool(self.url_or_pattern.match(url))
-
-    def match(self, method: str, url: str) -> bool:
+    def match(self, method: str, url: URL) -> bool:
         if self.method != method.lower():
             return False
         return self.match_func(url)
@@ -205,7 +200,7 @@ class aioresponses(object):
             response_class: 'ClientResponse' = None,
             repeat: bool = False,
             timeout: bool = False) -> None:
-        self._responses.append(UrlResponse(
+        self._responses.append(MockedResponse(
             url,
             method=method,
             status=status,
@@ -219,7 +214,7 @@ class aioresponses(object):
             timeout=timeout,
         ))
 
-    async def match(self, method: str, url: str) -> 'ClientResponse':
+    async def match(self, method: str, url: URL) -> 'ClientResponse':
         i, resp = next(
             iter(
                 [(i, r)
@@ -238,14 +233,15 @@ class aioresponses(object):
         return resp
 
     async def _request_mock(self, orig_self: client.ClientSession,
-                            method: str, url: str, *args: Tuple,
+                            method: str, url: 'UrlType',
+                            params: Dict = None,
+                            *args: Tuple,
                             **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
-
-        url = merge_url_params(url, kwargs.get('params'))
-
+        url = normalize_url(merge_params(url, params))
+        url_str = str(url)
         for prefix in self._passthrough:
-            if str(url).startswith(prefix):
+            if url_str.startswith(prefix):
                 return (await self.patcher.temp_original(
                     orig_self, method, url, *args, **kwargs
                 ))

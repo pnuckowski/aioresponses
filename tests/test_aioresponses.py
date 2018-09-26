@@ -215,7 +215,7 @@ class AIOResponsesTestCase(TestCase):
             resp = yield from self.session.get(self.url)
             self.assertEqual(resp.status, 202)
 
-            key = ('GET', self.url)
+            key = ('GET', URL(self.url))
             self.assertIn(key, m.requests)
             self.assertEqual(len(m.requests[key]), 3)
             self.assertEqual(m.requests[key][0].args, tuple())
