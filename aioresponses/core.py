@@ -4,29 +4,31 @@ import json
 from collections import namedtuple
 from distutils.version import StrictVersion
 from functools import wraps
-from typing import Dict, Tuple, Union, Optional
+from typing import Dict, Tuple, Union, Optional, List  # noqa
 from unittest.mock import Mock, patch
-from urllib.parse import parse_qsl, urlencode
 
-import aiohttp
 from aiohttp import ClientConnectionError, ClientResponse, client, hdrs
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict
-from typing import List
 
-from aioresponses.compat import merge_params, normalize_url
-from .compat import URL, stream_reader_factory, Pattern
-
-VERSION = StrictVersion(aiohttp.__version__)
-UrlType = Union[URL, str]
+from .compat import (
+    URL,
+    stream_reader_factory,
+    Pattern,
+    merge_params,
+    normalize_url,
+    VERSION
+)
 
 
 class MockedResponse(object):
     resp = None
     url_or_pattern = None  # type: Union[URL, Pattern]
 
-    def __init__(self, url: Union[str, Pattern], method: str = hdrs.METH_GET,
-                 status: int = 200, body: str = '',
+    def __init__(self, url: Union[str, Pattern],
+                 method: str = hdrs.METH_GET,
+                 status: int = 200,
+                 body: str = '',
                  exception: 'Exception' = None,
                  headers: Dict = None, payload: Dict = None,
                  content_type: str = 'application/json',
@@ -105,7 +107,7 @@ class MockedResponse(object):
         self.resp.content.feed_eof()
         return self.resp
 
-    def _build_raw_headers(self, headers):
+    def _build_raw_headers(self, headers: Dict) -> Tuple:
         """
         Convert a dict of headers to a tuple of tuples
 
@@ -171,28 +173,29 @@ class aioresponses(object):
         self.patcher.stop()
         self._responses = []
 
-    def head(self, url: str, **kwargs):
+    def head(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_HEAD, **kwargs)
 
-    def get(self, url: str, **kwargs):
+    def get(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_GET, **kwargs)
 
-    def post(self, url: str, **kwargs):
+    def post(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_POST, **kwargs)
 
-    def put(self, url: str, **kwargs):
+    def put(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_PUT, **kwargs)
 
-    def patch(self, url: str, **kwargs):
+    def patch(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_PATCH, **kwargs)
 
-    def delete(self, url: str, **kwargs):
+    def delete(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_DELETE, **kwargs)
 
-    def options(self, url: str, **kwargs):
+    def options(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_OPTIONS, **kwargs)
 
-    def add(self, url: str, method: str = hdrs.METH_GET, status: int = 200,
+    def add(self, url: 'Union[URL, str]', method: str = hdrs.METH_GET,
+            status: int = 200,
             body: str = '',
             exception: 'Exception' = None,
             content_type: str = 'application/json',
@@ -230,7 +233,7 @@ class aioresponses(object):
         return resp
 
     async def _request_mock(self, orig_self: client.ClientSession,
-                            method: str, url: 'UrlType',
+                            method: str, url: 'Union[URL, str]',
                             *args: Tuple,
                             **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
