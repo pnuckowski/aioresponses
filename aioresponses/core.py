@@ -4,7 +4,7 @@ import json
 from collections import namedtuple
 from distutils.version import StrictVersion
 from functools import wraps
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Optional
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qsl, urlencode
 
@@ -12,6 +12,7 @@ import aiohttp
 from aiohttp import ClientConnectionError, ClientResponse, client, hdrs
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict
+from typing import List
 
 from aioresponses.compat import merge_params, normalize_url
 from .compat import URL, stream_reader_factory, Pattern
@@ -65,7 +66,7 @@ class MockedResponse(object):
         return self.match_func(url)
 
     async def build_response(
-            self, url: str
+            self, url: URL
     ) -> 'Union[ClientResponse, Exception]':
         if isinstance(self.exception, Exception):
             return self.exception
@@ -85,7 +86,7 @@ class MockedResponse(object):
             kwargs['traces'] = []
             kwargs['loop'] = loop
             kwargs['session'] = None
-        self.resp = self.response_class(self.method, URL(url), **kwargs)
+        self.resp = self.response_class(self.method, url, **kwargs)
         # we need to initialize headers manually
         headers = CIMultiDict({hdrs.CONTENT_TYPE: self.content_type})
         if self.headers:
@@ -118,7 +119,7 @@ class MockedResponse(object):
 
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
-    _responses = None
+    _responses = None  # type: List[MockedResponse]
     method_call = namedtuple('method_call', ['args', 'kwargs'])
 
     def __init__(self, **kwargs):
@@ -214,19 +215,15 @@ class aioresponses(object):
             timeout=timeout,
         ))
 
-    async def match(self, method: str, url: URL) -> 'ClientResponse':
-        i, resp = next(
-            iter(
-                [(i, r)
-                 for i, r in enumerate(self._responses)
-                 if r.match(method, url)]
-            ),
-            (None, None)
-        )
-        if resp:
-            resp = await resp.build_response(url)
+    async def match(self, method: str, url: URL) -> Optional['ClientResponse']:
+        for i, mock in enumerate(self._responses):
+            if mock.match(method, url):
+                resp = await mock.build_response(url)
+                break
+        else:
+            return None
 
-        if i is not None and self._responses[i].repeat is False:
+        if mock.repeat is False:
             del self._responses[i]
         if isinstance(resp, Exception):
             raise resp
@@ -234,11 +231,10 @@ class aioresponses(object):
 
     async def _request_mock(self, orig_self: client.ClientSession,
                             method: str, url: 'UrlType',
-                            params: Dict = None,
                             *args: Tuple,
                             **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
-        url = normalize_url(merge_params(url, params))
+        url = normalize_url(merge_params(url, kwargs.get('params')))
         url_str = str(url)
         for prefix in self._passthrough:
             if url_str.startswith(prefix):
