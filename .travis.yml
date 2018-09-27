@@ -5,45 +5,57 @@ language: python
 
 matrix:
   include:
-    - python: 3.5
-      env: TOXENV=py35-aiohttp20
-    - python: 3.5
-      env: TOXENV=py35-aiohttp21
-    - python: 3.5
-      env: TOXENV=py35-aiohttp22
-    - python: 3.5
-      env: TOXENV=py35-aiohttp23
-    - python: 3.5
-      env: TOXENV=py35-aiohttp30
-    - python: 3.5
-      env: TOXENV=py35-aiohttp31
+  - python: 3.5
+    env: TOXENV=py35-aiohttp20
+  - python: 3.5
+    env: TOXENV=py35-aiohttp21
+  - python: 3.5
+    env: TOXENV=py35-aiohttp22
+  - python: 3.5
+    env: TOXENV=py35-aiohttp23
+  - python: 3.5
+    env: TOXENV=py35-aiohttp30
+  - python: 3.5
+    env: TOXENV=py35-aiohttp31
+  - python: 3.5
+    env: TOXENV=py35-aiohttp32
+  - python: 3.5
+    env: TOXENV=py35-aiohttp33
+  - python: 3.5
+    env: TOXENV=py35-aiohttp34
 
-    - python: 3.6
-      env: TOXENV=py36-aiohttp20
-    - python: 3.6
-      env: TOXENV=py36-aiohttp21
-    - python: 3.6
-      env: TOXENV=py36-aiohttp22
-    - python: 3.6
-      env: TOXENV=py36-aiohttp23
-    - python: 3.6
-      env: TOXENV=py36-aiohttp30
-    - python: 3.6
-      env: TOXENV=py36-aiohttp31
-#    - python: 3.6
-#      env: TOXENV=py36-aiohttpmaster
-#
+  - python: 3.6
+    env: TOXENV=py36-aiohttp20
+  - python: 3.6
+    env: TOXENV=py36-aiohttp21
+  - python: 3.6
+    env: TOXENV=py36-aiohttp22
+  - python: 3.6
+    env: TOXENV=py36-aiohttp23
+  - python: 3.6
+    env: TOXENV=py36-aiohttp30
+  - python: 3.6
+    env: TOXENV=py36-aiohttp31
+  - python: 3.6
+    env: TOXENV=py36-aiohttp32
+  - python: 3.6
+    env: TOXENV=py36-aiohttp33
+  - python: 3.6
+    env: TOXENV=py36-aiohttp34
+  #    - python: 3.6
+  #      env: TOXENV=py36-aiohttpmaster
+  #
 
-    - python: 3.6
-      env: TOXENV=flake8
-    - python: 3.6
-      env: TOXENV=coverage
+  - python: 3.6
+    env: TOXENV=flake8
+  - python: 3.6
+    env: TOXENV=coverage
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install: pip install -U tox coveralls
 
 after_success:
-    - coveralls
+- coveralls
 
 # command to run tests, e.g. python setup.py test
 script: tox -e ${TOXENV}
