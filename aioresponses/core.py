@@ -4,27 +4,34 @@ import json
 from collections import namedtuple
 from distutils.version import StrictVersion
 from functools import wraps
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Optional, List  # noqa
 from unittest.mock import Mock, patch
-from urllib.parse import parse_qsl, urlencode, urlparse
 
-import aiohttp
-from aiohttp import ClientConnectionError, ClientResponse, client, hdrs
+from aiohttp import ClientConnectionError, ClientResponse, ClientSession, hdrs
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict
 
-from .compat import URL, merge_url_params, stream_reader_factory, Pattern
+from .compat import (
+    URL,
+    Pattern,
+    stream_reader_factory,
+    merge_params,
+    normalize_url,
+    AIOHTTP_VERSION
+)
 
-VERSION = StrictVersion(aiohttp.__version__)
 
-
-class UrlResponse(object):
+class MockedResponse(object):
     resp = None
+    url_or_pattern = None  # type: Union[URL, Pattern]
 
-    def __init__(self, url: Union[str, Pattern], method: str = hdrs.METH_GET,
-                 status: int = 200, body: str = '',
+    def __init__(self, url: Union[str, Pattern],
+                 method: str = hdrs.METH_GET,
+                 status: int = 200,
+                 body: str = '',
+                 payload: Dict = None,
                  exception: 'Exception' = None,
-                 headers: Dict = None, payload: Dict = None,
+                 headers: Dict = None,
                  content_type: str = 'application/json',
                  response_class: 'ClientResponse' = None,
                  timeout: bool = False,
@@ -33,7 +40,7 @@ class UrlResponse(object):
             self.url_or_pattern = url
             self.match_func = self.match_regexp
         else:
-            self.url_or_pattern = self.parse_url(url)
+            self.url_or_pattern = normalize_url(url)
             self.match_func = self.match_str
         self.method = method.lower()
         self.status = status
@@ -50,32 +57,24 @@ class UrlResponse(object):
         self.response_class = response_class or ClientResponse
         self.repeat = repeat
 
-    def parse_url(self, url: str) -> str:
-        """Normalize url to make comparisons."""
-        url = str(url)
-        _url = url.split('?')[0]
-        query = urlencode(sorted(parse_qsl(urlparse(url).query)))
+    def match_str(self, url: URL) -> bool:
+        return self.url_or_pattern == url
 
-        return '{}?{}'.format(_url, query) if query else _url
+    def match_regexp(self, url: URL) -> bool:
+        return bool(self.url_or_pattern.match(str(url)))
 
-    def match_str(self, url: str) -> bool:
-        return self.url_or_pattern == self.parse_url(url)
-
-    def match_regexp(self, url: str) -> bool:
-        return bool(self.url_or_pattern.match(url))
-
-    def match(self, method: str, url: str) -> bool:
+    def match(self, method: str, url: URL) -> bool:
         if self.method != method.lower():
             return False
         return self.match_func(url)
 
     async def build_response(
-            self, url: str
+            self, url: URL
     ) -> 'Union[ClientResponse, Exception]':
         if isinstance(self.exception, Exception):
             return self.exception
         kwargs = {}
-        if VERSION >= StrictVersion('3.1.0'):
+        if AIOHTTP_VERSION >= StrictVersion('3.1.0'):
             loop = Mock()
             loop.get_debug = Mock()
             loop.get_debug.return_value = True
@@ -83,20 +82,20 @@ class UrlResponse(object):
             kwargs['writer'] = Mock()
             kwargs['continue100'] = None
             kwargs['timer'] = TimerNoop()
-            if VERSION >= StrictVersion('3.3.0'):
+            if AIOHTTP_VERSION >= StrictVersion('3.3.0'):
                 pass
             else:
                 kwargs['auto_decompress'] = True
             kwargs['traces'] = []
             kwargs['loop'] = loop
             kwargs['session'] = None
-        self.resp = self.response_class(self.method, URL(url), **kwargs)
+        self.resp = self.response_class(self.method, url, **kwargs)
         # we need to initialize headers manually
         headers = CIMultiDict({hdrs.CONTENT_TYPE: self.content_type})
         if self.headers:
             headers.update(self.headers)
         raw_headers = self._build_raw_headers(headers)
-        if VERSION >= StrictVersion('3.3.0'):
+        if AIOHTTP_VERSION >= StrictVersion('3.3.0'):
             # Reified attributes
             self.resp._headers = headers
             self.resp._raw_headers = raw_headers
@@ -109,7 +108,7 @@ class UrlResponse(object):
         self.resp.content.feed_eof()
         return self.resp
 
-    def _build_raw_headers(self, headers):
+    def _build_raw_headers(self, headers: Dict) -> Tuple:
         """
         Convert a dict of headers to a tuple of tuples
 
@@ -123,7 +122,7 @@ class UrlResponse(object):
 
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
-    _responses = None
+    _responses = None  # type: List[MockedResponse]
     method_call = namedtuple('method_call', ['args', 'kwargs'])
 
     def __init__(self, **kwargs):
@@ -175,28 +174,29 @@ class aioresponses(object):
         self.patcher.stop()
         self._responses = []
 
-    def head(self, url: str, **kwargs):
+    def head(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_HEAD, **kwargs)
 
-    def get(self, url: str, **kwargs):
+    def get(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_GET, **kwargs)
 
-    def post(self, url: str, **kwargs):
+    def post(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_POST, **kwargs)
 
-    def put(self, url: str, **kwargs):
+    def put(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_PUT, **kwargs)
 
-    def patch(self, url: str, **kwargs):
+    def patch(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_PATCH, **kwargs)
 
-    def delete(self, url: str, **kwargs):
+    def delete(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_DELETE, **kwargs)
 
-    def options(self, url: str, **kwargs):
+    def options(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_OPTIONS, **kwargs)
 
-    def add(self, url: str, method: str = hdrs.METH_GET, status: int = 200,
+    def add(self, url: 'Union[URL, str]', method: str = hdrs.METH_GET,
+            status: int = 200,
             body: str = '',
             exception: 'Exception' = None,
             content_type: str = 'application/json',
@@ -205,7 +205,7 @@ class aioresponses(object):
             response_class: 'ClientResponse' = None,
             repeat: bool = False,
             timeout: bool = False) -> None:
-        self._responses.append(UrlResponse(
+        self._responses.append(MockedResponse(
             url,
             method=method,
             status=status,
@@ -219,33 +219,29 @@ class aioresponses(object):
             timeout=timeout,
         ))
 
-    async def match(self, method: str, url: str) -> 'ClientResponse':
-        i, resp = next(
-            iter(
-                [(i, r)
-                 for i, r in enumerate(self._responses)
-                 if r.match(method, url)]
-            ),
-            (None, None)
-        )
-        if resp:
-            resp = await resp.build_response(url)
+    async def match(self, method: str, url: URL) -> Optional['ClientResponse']:
+        for i, mock in enumerate(self._responses):
+            if mock.match(method, url):
+                resp = await mock.build_response(url)
+                break
+        else:
+            return None
 
-        if i is not None and self._responses[i].repeat is False:
+        if mock.repeat is False:
             del self._responses[i]
         if isinstance(resp, Exception):
             raise resp
         return resp
 
-    async def _request_mock(self, orig_self: client.ClientSession,
-                            method: str, url: str, *args: Tuple,
+    async def _request_mock(self, orig_self: ClientSession,
+                            method: str, url: 'Union[URL, str]',
+                            *args: Tuple,
                             **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
-
-        url = merge_url_params(url, kwargs.get('params'))
-
+        url = normalize_url(merge_params(url, kwargs.get('params')))
+        url_str = str(url)
         for prefix in self._passthrough:
-            if str(url).startswith(prefix):
+            if url_str.startswith(prefix):
                 return (await self.patcher.temp_original(
                     orig_self, method, url, *args, **kwargs
                 ))

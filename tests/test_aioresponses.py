@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import re
+from typing import Coroutine, Generator, Union
 from unittest.mock import patch
 
 from aiohttp import hdrs
@@ -8,17 +9,15 @@ from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 from asynctest import fail_on
 from asynctest.case import TestCase
-from typing import Coroutine, Generator, Union
-
-from aioresponses.compat import URL
+from ddt import ddt, data
 
 try:
     from aiohttp.errors import ClientConnectionError, HttpProcessingError
 except ImportError:
     from aiohttp.client_exceptions import ClientConnectionError
     from aiohttp.http_exceptions import HttpProcessingError
-from ddt import ddt, data
 
+from aioresponses.compat import URL
 from aioresponses import aioresponses
 
 
@@ -215,7 +214,7 @@ class AIOResponsesTestCase(TestCase):
             resp = yield from self.session.get(self.url)
             self.assertEqual(resp.status, 202)
 
-            key = ('GET', self.url)
+            key = ('GET', URL(self.url))
             self.assertIn(key, m.requests)
             self.assertEqual(len(m.requests[key]), 3)
             self.assertEqual(m.requests[key][0].args, tuple())
