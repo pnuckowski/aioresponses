@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
+from typing import Union
 from unittest import TestCase
 
 from ddt import ddt, data
-from typing import Union
 from yarl import URL
 
 from aioresponses.compat import merge_params

@@ -17,7 +17,7 @@ from .compat import (
     stream_reader_factory,
     merge_params,
     normalize_url,
-    VERSION
+    AIOHTTP_VERSION
 )
 
 
@@ -74,7 +74,7 @@ class MockedResponse(object):
         if isinstance(self.exception, Exception):
             return self.exception
         kwargs = {}
-        if VERSION >= StrictVersion('3.1.0'):
+        if AIOHTTP_VERSION >= StrictVersion('3.1.0'):
             loop = Mock()
             loop.get_debug = Mock()
             loop.get_debug.return_value = True
@@ -82,7 +82,7 @@ class MockedResponse(object):
             kwargs['writer'] = Mock()
             kwargs['continue100'] = None
             kwargs['timer'] = TimerNoop()
-            if VERSION >= StrictVersion('3.3.0'):
+            if AIOHTTP_VERSION >= StrictVersion('3.3.0'):
                 pass
             else:
                 kwargs['auto_decompress'] = True
@@ -95,7 +95,7 @@ class MockedResponse(object):
         if self.headers:
             headers.update(self.headers)
         raw_headers = self._build_raw_headers(headers)
-        if VERSION >= StrictVersion('3.3.0'):
+        if AIOHTTP_VERSION >= StrictVersion('3.3.0'):
             # Reified attributes
             self.resp._headers = headers
             self.resp._raw_headers = raw_headers
