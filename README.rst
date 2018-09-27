@@ -209,10 +209,6 @@ Features
 --------
 * Easy to mock out HTTP requests made by *aiohttp.ClientSession*
 
-Disclaimer
-----------
-Due to the fact that *get*, *post*, *put*, *delete* methods from *aiohttp* are in deprecation mode and they are NOT supported by this package.
-
 
 License
 -------
