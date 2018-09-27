@@ -227,18 +227,18 @@ class aioresponses(object):
         ))
 
     async def match(self, method: str, url: URL) -> Optional['ClientResponse']:
-        for i, mock in enumerate(self._matches):
-            if mock.match(method, url):
-                resp = await mock.build_response(url)
+        for i, matcher in enumerate(self._matches):
+            if matcher.match(method, url):
+                response = await matcher.build_response(url)
                 break
         else:
             return None
 
-        if mock.repeat is False:
+        if matcher.repeat is False:
             del self._matches[i]
-        if isinstance(resp, Exception):
-            raise resp
-        return resp
+        if isinstance(response, Exception):
+            raise response
+        return response
 
     async def _request_mock(self, orig_self: ClientSession,
                             method: str, url: 'Union[URL, str]',
