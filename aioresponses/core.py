@@ -21,7 +21,7 @@ from .compat import (
 )
 
 
-class MockedResponse(object):
+class RequestMatch(object):
     resp = None
     url_or_pattern = None  # type: Union[URL, Pattern]
 
@@ -120,10 +120,13 @@ class MockedResponse(object):
         return tuple(raw_headers)
 
 
+RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
+
+
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
-    _responses = None  # type: List[MockedResponse]
-    method_call = namedtuple('method_call', ['args', 'kwargs'])
+    _matches = None  # type: List[RequestMatch]
+    requests = None  # type: Dict
 
     def __init__(self, **kwargs):
         self._param = kwargs.pop('param', None)
@@ -163,16 +166,16 @@ class aioresponses(object):
         return wrapped
 
     def start(self):
-        self._responses = []
+        self._matches = []
         self.patcher.start()
         self.patcher.return_value = self._request_mock
 
     def stop(self) -> None:
-        for r in self._responses:
+        for r in self._matches:
             if r.resp is not None:
                 r.resp.close()
         self.patcher.stop()
-        self._responses = []
+        self._matches = []
 
     def head(self, url: 'Union[URL, str]', **kwargs):
         self.add(url, method=hdrs.METH_HEAD, **kwargs)
@@ -205,7 +208,7 @@ class aioresponses(object):
             response_class: 'ClientResponse' = None,
             repeat: bool = False,
             timeout: bool = False) -> None:
-        self._responses.append(MockedResponse(
+        self._matches.append(RequestMatch(
             url,
             method=method,
             status=status,
@@ -220,7 +223,7 @@ class aioresponses(object):
         ))
 
     async def match(self, method: str, url: URL) -> Optional['ClientResponse']:
-        for i, mock in enumerate(self._responses):
+        for i, mock in enumerate(self._matches):
             if mock.match(method, url):
                 resp = await mock.build_response(url)
                 break
@@ -228,7 +231,7 @@ class aioresponses(object):
             return None
 
         if mock.repeat is False:
-            del self._responses[i]
+            del self._matches[i]
         if isinstance(resp, Exception):
             raise resp
         return resp
@@ -253,5 +256,5 @@ class aioresponses(object):
             )
         key = (method, url)
         self.requests.setdefault(key, [])
-        self.requests[key].append(self.method_call(args, kwargs))
+        self.requests[key].append(RequestCall(args, kwargs))
         return response
