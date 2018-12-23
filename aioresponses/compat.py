@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import asyncio
 import re
 from distutils.version import StrictVersion
-from typing import Union, Dict  # noqa
-from urllib.parse import urlencode, parse_qsl
+from typing import Dict, Optional, Union  # noqa
+from urllib.parse import parse_qsl, urlencode
 
-from aiohttp import __version__ as aiohttp_version, StreamReader
+from aiohttp import StreamReader
+from aiohttp import __version__ as aiohttp_version
 from multidict import MultiDict
 from yarl import URL
 
@@ -19,8 +21,10 @@ AIOHTTP_VERSION = StrictVersion(aiohttp_version)
 if AIOHTTP_VERSION >= StrictVersion('3.0.0'):
     from aiohttp.client_proto import ResponseHandler
 
-    def stream_reader_factory():
-        protocol = ResponseHandler()
+    def stream_reader_factory(
+            loop: 'Optional[asyncio.AbstractEventLoop]' = None
+    ):
+        protocol = ResponseHandler(loop=loop)
         return StreamReader(protocol)
 
 
