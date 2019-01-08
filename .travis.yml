@@ -23,6 +23,8 @@ matrix:
     env: TOXENV=py35-aiohttp33
   - python: 3.5
     env: TOXENV=py35-aiohttp34
+  - python: 3.5
+    env: TOXENV=py35-aiohttp35
 
   - python: 3.6
     env: TOXENV=py36-aiohttp20
@@ -42,6 +44,8 @@ matrix:
     env: TOXENV=py36-aiohttp33
   - python: 3.6
     env: TOXENV=py36-aiohttp34
+  - python: 3.6
+    env: TOXENV=py36-aiohttp35
   #    - python: 3.6
   #      env: TOXENV=py36-aiohttpmaster
   #
