@@ -7,7 +7,7 @@ from functools import wraps
 from typing import Dict, Tuple, Union, Optional, List  # noqa
 from unittest.mock import Mock, patch
 
-from aiohttp import ClientConnectionError, ClientResponse, ClientSession, hdrs
+from aiohttp import ClientConnectionError, ClientResponse, ClientSession, hdrs, http
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict
 
@@ -34,7 +34,8 @@ class RequestMatch(object):
                  content_type: str = 'application/json',
                  response_class: 'ClientResponse' = None,
                  timeout: bool = False,
-                 repeat: bool = False):
+                 repeat: bool = False,
+                 reason: Optional[str] = None):
         if isinstance(url, Pattern):
             self.url_or_pattern = url
             self.match_func = self.match_regexp
@@ -55,6 +56,12 @@ class RequestMatch(object):
         self.content_type = content_type
         self.response_class = response_class or ClientResponse
         self.repeat = repeat
+        self.reason = reason
+        if self.reason is None:
+            try:
+                self.reason = http.RESPONSES[self.status][0]
+            except Exception:
+                self.reason = ''
 
     def match_str(self, url: URL) -> bool:
         return self.url_or_pattern == url
@@ -102,6 +109,7 @@ class RequestMatch(object):
             resp.headers = headers
             resp.raw_headers = raw_headers
         resp.status = self.status
+        resp.reason = self.reason
         resp.content = stream_reader_factory()
         resp.content.feed_data(self.body)
         resp.content.feed_eof()
@@ -211,7 +219,8 @@ class aioresponses(object):
             headers: Dict = None,
             response_class: 'ClientResponse' = None,
             repeat: bool = False,
-            timeout: bool = False) -> None:
+            timeout: bool = False,
+            reason: Optional[str] = None) -> None:
         self._matches.append(RequestMatch(
             url,
             method=method,
@@ -224,6 +233,7 @@ class aioresponses(object):
             response_class=response_class,
             repeat=repeat,
             timeout=timeout,
+            reason=reason,
         ))
 
     async def match(self, method: str, url: URL) -> Optional['ClientResponse']:
