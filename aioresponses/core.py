@@ -7,7 +7,13 @@ from functools import wraps
 from typing import Dict, Tuple, Union, Optional, List  # noqa
 from unittest.mock import Mock, patch
 
-from aiohttp import ClientConnectionError, ClientResponse, ClientSession, hdrs, http
+from aiohttp import (
+    ClientConnectionError,
+    ClientResponse,
+    ClientSession,
+    hdrs,
+    http
+)
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict
 
