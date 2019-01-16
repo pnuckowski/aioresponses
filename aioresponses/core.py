@@ -66,7 +66,7 @@ class RequestMatch(object):
         if self.reason is None:
             try:
                 self.reason = http.RESPONSES[self.status][0]
-            except Exception:
+            except (IndexError, KeyError):
                 self.reason = ''
 
     def match_str(self, url: URL) -> bool:
