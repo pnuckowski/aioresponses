@@ -5,6 +5,7 @@ from typing import Coroutine, Generator, Union
 from unittest.mock import patch
 
 from aiohttp import hdrs
+from aiohttp import http
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 from asynctest import fail_on
@@ -12,9 +13,16 @@ from asynctest.case import TestCase
 from ddt import ddt, data
 
 try:
-    from aiohttp.errors import ClientConnectionError, HttpProcessingError
+    from aiohttp.errors import (
+        ClientConnectionError,
+        ClientResponseError,
+        HttpProcessingError,
+    )
 except ImportError:
-    from aiohttp.client_exceptions import ClientConnectionError
+    from aiohttp.client_exceptions import (
+        ClientConnectionError,
+        ClientResponseError,
+    )
     from aiohttp.http_exceptions import HttpProcessingError
 
 from aioresponses.compat import URL
@@ -99,6 +107,15 @@ class AIOResponsesTestCase(TestCase):
         )
 
         self.assertEqual(response.raw_headers, expected_raw_headers)
+
+    @aioresponses()
+    @asyncio.coroutine
+    def test_raise_for_status(self, m):
+        m.get(self.url, status=400)
+        with self.assertRaises(ClientResponseError) as cm:
+            response = yield from self.session.get(self.url)
+            response.raise_for_status()
+        self.assertEqual(cm.exception.message, http.RESPONSES[400][0])
 
     @aioresponses()
     @asyncio.coroutine
