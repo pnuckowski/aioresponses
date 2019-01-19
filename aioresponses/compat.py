@@ -117,6 +117,28 @@ def build_response(
     return resp
 
 
+class CallbackResult:
+
+    def __init__(self, url: 'Union[URL, str]',
+                 method: str = hdrs.METH_GET,
+                 status: int = 200,
+                 body: str = '',
+                 content_type: str = 'application/json',
+                 payload: Dict = None,
+                 headers: Dict = None,
+                 response_class: 'ClientResponse' = None,
+                 reason: Optional[str] = None):
+        self.url = url
+        self.method = method
+        self.status = status
+        self.body = body
+        self.content_type = content_type
+        self.payload = payload
+        self.headers = headers
+        self.response_class = response_class
+        self.reason = reason
+
+
 __all__ = [
     'URL',
     'Pattern',
@@ -125,4 +147,5 @@ __all__ = [
     'stream_reader_factory',
     'normalize_url',
     'build_response',
+    'CallbackResult',
 ]

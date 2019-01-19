@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from aiohttp import (
     ClientConnectionError,
+    ClientResponse,
     ClientSession,
     hdrs,
     http
@@ -83,16 +84,21 @@ class RequestMatch(object):
         else:
             resp = None
         if resp is None:
-            resp = build_response(
-                url=url,
-                method=self.method,
-                status=self.status,
-                body=self.body,
-                content_type=self.content_type,
-                payload=self.payload,
-                headers=self.headers,
-                response_class=self.response_class,
-                reason=self.reason)
+            url = url
+            resp_data = self
+        else:
+            url = resp.url
+            resp_data = resp
+        resp = build_response(
+            url=url,
+            method=resp_data.method,
+            status=resp_data.status,
+            body=resp_data.body,
+            content_type=resp_data.content_type,
+            payload=resp_data.payload,
+            headers=resp_data.headers,
+            response_class=resp_data.response_class,
+            reason=resp_data.reason)
         return resp
 
 
