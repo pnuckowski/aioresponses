@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-from .compat import CallbackResult
-from .core import aioresponses
+from .core import CallbackResult, aioresponses
 
 __version__ = '0.4.1'
 
 __all__ = [
-    'aioresponses',
     'CallbackResult',
+    'aioresponses',
 ]

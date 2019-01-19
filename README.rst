@@ -199,7 +199,7 @@ for convenience use *payload* argument to mock out json response. Example below.
     from aioresponses import CallbackResult, aioresponses
 
     def callback(url, **kwargs):
-        return CallbackResult(url, status=418)
+        return CallbackResult(status=418)
 
     @aioresponses()
     def test_callback(m, test_client):

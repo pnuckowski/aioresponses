@@ -322,7 +322,7 @@ class AIOResponsesTestCase(TestCase):
         def callback(url, **kwargs):
             self.assertEqual(str(url), self.url)
             self.assertEqual(kwargs, {'allow_redirects': True})
-            return CallbackResult(url, body=body)
+            return CallbackResult(body=body)
 
         m.get(self.url, callback=callback)
         response = self.run_async(self.request(self.url))
