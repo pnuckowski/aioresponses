@@ -196,10 +196,10 @@ for convenience use *payload* argument to mock out json response. Example below.
 
     import asyncio
     import aiohttp
-    from aioresponses import aioresponses
+    from aioresponses import aioresponses, build_response
 
-    async def callback(match, url, *args, **kwargs):
-        return match.build_response(url, status=418)
+    def callback(url, **kwargs):
+        return build_response(url, status=418)
 
     @aioresponses()
     def test_callback(m, test_client):
