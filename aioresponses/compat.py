@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import asyncio
+import asyncio  # noqa
 import re
 from distutils.version import StrictVersion
 from typing import Dict, Optional, Union  # noqa

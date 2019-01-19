@@ -190,6 +190,28 @@ for convenience use *payload* argument to mock out json response. Example below.
         # will throw an exception.
 
 
+**aioresponses allows to use callbacks to provide dynamic responses**
+
+.. code:: python
+
+    import asyncio
+    import aiohttp
+    from aioresponses import aioresponses
+
+    async def callback(match, url, *args, **kwargs):
+        return match.build_response(url, status=418)
+
+    @aioresponses()
+    def test_callback(m, test_client):
+        loop = asyncio.get_event_loop()
+        session = ClientSession()
+        m.get('http://example.com', callback=callback)
+
+        resp = loop.run_until_complete(session.get('http://example.com'))
+
+        assert resp.status == 418
+
+
 **aioresponses can be used in a pytest fixture**
 
 .. code:: python
@@ -201,8 +223,6 @@ for convenience use *payload* argument to mock out json response. Example below.
     def mock_aioresponse():
         with aioresponses() as m:
             yield m
-
-
 
 
 Features

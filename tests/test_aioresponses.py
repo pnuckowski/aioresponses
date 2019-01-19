@@ -314,3 +314,19 @@ class AIOResponsesTestCase(TestCase):
 
         with self.assertRaises(asyncio.TimeoutError):
             self.run_async(self.request(self.url))
+
+    @aioresponses()
+    def test_callback(self, m):
+        body = b'New body'
+
+        @asyncio.coroutine
+        async def callback(match, url, *args, **kwargs):
+            self.assertEqual(str(url), self.url)
+            self.assertEqual(args, ())
+            self.assertEqual(kwargs, {'allow_redirects': True})
+            return match.build_response(url, body=body)
+
+        m.get(self.url, callback=callback)
+        response = self.run_async(self.request(self.url))
+        data = self.run_async(response.read())
+        assert data == body
