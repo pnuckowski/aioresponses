@@ -26,7 +26,7 @@ except ImportError:
     from aiohttp.http_exceptions import HttpProcessingError
 
 from aioresponses.compat import URL
-from aioresponses import aioresponses
+from aioresponses import CallbackResult, aioresponses
 
 
 @ddt
@@ -314,3 +314,17 @@ class AIOResponsesTestCase(TestCase):
 
         with self.assertRaises(asyncio.TimeoutError):
             self.run_async(self.request(self.url))
+
+    @aioresponses()
+    def test_callback(self, m):
+        body = b'New body'
+
+        def callback(url, **kwargs):
+            self.assertEqual(str(url), self.url)
+            self.assertEqual(kwargs, {'allow_redirects': True})
+            return CallbackResult(body=body)
+
+        m.get(self.url, callback=callback)
+        response = self.run_async(self.request(self.url))
+        data = self.run_async(response.read())
+        assert data == body

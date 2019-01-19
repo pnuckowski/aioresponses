@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-import asyncio
+import asyncio  # noqa
 import re
 from distutils.version import StrictVersion
-from typing import Dict, Optional, Union  # noqa
+from typing import Dict, Optional, Tuple, Union  # noqa
 from urllib.parse import parse_qsl, urlencode
 
-from aiohttp import StreamReader
-from aiohttp import __version__ as aiohttp_version
+from aiohttp import __version__ as aiohttp_version, StreamReader
 from multidict import MultiDict
 from yarl import URL
 
@@ -26,7 +25,6 @@ if AIOHTTP_VERSION >= StrictVersion('3.0.0'):
     ):
         protocol = ResponseHandler(loop=loop)
         return StreamReader(protocol)
-
 
 else:  # pragma: no cover
 
