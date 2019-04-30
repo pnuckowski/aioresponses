@@ -36,7 +36,8 @@ class CallbackResult:
                  payload: Dict = None,
                  headers: Dict = None,
                  response_class: 'ClientResponse' = None,
-                 reason: Optional[str] = None):
+                 reason: Optional[str] = None,
+                 url: Optional[URL] = None):
         self.method = method
         self.status = status
         self.body = body
@@ -45,6 +46,7 @@ class CallbackResult:
         self.headers = headers
         self.response_class = response_class
         self.reason = reason
+        self.url = url
 
 
 class RequestMatch(object):
@@ -166,6 +168,8 @@ class RequestMatch(object):
             return self.exception
         if callable(self.callback):
             result = self.callback(url, **kwargs)
+            if result.url is not None:
+                url = result.url
         else:
             result = None
         result = self if result is None else result
