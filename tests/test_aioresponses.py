@@ -328,3 +328,18 @@ class AIOResponsesTestCase(TestCase):
         response = self.run_async(self.request(self.url))
         data = self.run_async(response.read())
         assert data == body
+
+    @aioresponses()
+    def test_callback_setting_url(self, m):
+        body = b'New body'
+
+        def callback(url, **kwargs):
+            self.assertEqual(str(url), self.url)
+            self.assertEqual(kwargs, {'allow_redirects': True})
+            return CallbackResult(body=body, url=url.with_query(foo='bar'))
+
+        m.get(self.url, callback=callback)
+        response = self.run_async(self.request(self.url))
+        data = self.run_async(response.read())
+        assert response.url == URL(self.url).with_query(foo='bar')
+        assert data == body

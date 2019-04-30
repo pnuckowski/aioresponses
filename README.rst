@@ -190,7 +190,7 @@ for convenience use *payload* argument to mock out json response. Example below.
         # will throw an exception.
 
 
-**aioresponses allows to use callbacks to provide dynamic responses**
+**aioresponses allows you to use callbacks to provide dynamic responses**
 
 .. code:: python
 
