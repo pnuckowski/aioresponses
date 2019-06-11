@@ -165,7 +165,10 @@ class RequestMatch(object):
         if isinstance(self.exception, Exception):
             return self.exception
         if callable(self.callback):
-            result = self.callback(url, **kwargs)
+            if asyncio.iscoroutinefunction(self.callback):
+                result = await self.callback(url, **kwargs)
+            else:
+                result = self.callback(url, **kwargs)
         else:
             result = None
         result = self if result is None else result

@@ -328,3 +328,26 @@ class AIOResponsesTestCase(TestCase):
         response = self.run_async(self.request(self.url))
         data = self.run_async(response.read())
         assert data == body
+
+    @aioresponses()
+    def test_callback_coroutine(self, m):
+        body = b'New body'
+        event = asyncio.Event()
+
+        @asyncio.coroutine
+        def callback(url, **kwargs):
+            yield from event.wait()
+            self.assertEqual(str(url), self.url)
+            self.assertEqual(kwargs, {'allow_redirects': True})
+            return CallbackResult(body=body)
+
+        m.get(self.url, callback=callback)
+        future = asyncio.ensure_future(self.request(self.url))
+        self.run_async(asyncio.wait([future], timeout=0))
+        assert not future.done()
+        event.set()
+        self.run_async(asyncio.wait([future], timeout=0))
+        assert future.done()
+        response = future.result()
+        data = self.run_async(response.read())
+        assert data == body
