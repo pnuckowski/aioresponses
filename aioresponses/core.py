@@ -50,7 +50,7 @@ class CallbackResult:
 class RequestMatch(object):
     url_or_pattern = None  # type: Union[URL, Pattern]
 
-    def __init__(self, url: Union[str, Pattern],
+    def __init__(self, url: Union[URL, str, Pattern],
                  method: str = hdrs.METH_GET,
                  status: int = 200,
                  body: str = '',
@@ -247,28 +247,28 @@ class aioresponses(object):
         self.patcher.stop()
         self.clear()
 
-    def head(self, url: 'Union[URL, str]', **kwargs):
+    def head(self, url: 'Union[URL, str, Pattern]', **kwargs):
         self.add(url, method=hdrs.METH_HEAD, **kwargs)
 
-    def get(self, url: 'Union[URL, str]', **kwargs):
+    def get(self, url: 'Union[URL, str, Pattern]', **kwargs):
         self.add(url, method=hdrs.METH_GET, **kwargs)
 
-    def post(self, url: 'Union[URL, str]', **kwargs):
+    def post(self, url: 'Union[URL, str, Pattern]', **kwargs):
         self.add(url, method=hdrs.METH_POST, **kwargs)
 
-    def put(self, url: 'Union[URL, str]', **kwargs):
+    def put(self, url: 'Union[URL, str, Pattern]', **kwargs):
         self.add(url, method=hdrs.METH_PUT, **kwargs)
 
-    def patch(self, url: 'Union[URL, str]', **kwargs):
+    def patch(self, url: 'Union[URL, str, Pattern]', **kwargs):
         self.add(url, method=hdrs.METH_PATCH, **kwargs)
 
-    def delete(self, url: 'Union[URL, str]', **kwargs):
+    def delete(self, url: 'Union[URL, str, Pattern]', **kwargs):
         self.add(url, method=hdrs.METH_DELETE, **kwargs)
 
-    def options(self, url: 'Union[URL, str]', **kwargs):
+    def options(self, url: 'Union[URL, str, Pattern]', **kwargs):
         self.add(url, method=hdrs.METH_OPTIONS, **kwargs)
 
-    def add(self, url: 'Union[URL, str]', method: str = hdrs.METH_GET,
+    def add(self, url: 'Union[URL, str, Pattern]', method: str = hdrs.METH_GET,
             status: int = 200,
             body: str = '',
             exception: 'Exception' = None,
