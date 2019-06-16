@@ -334,4 +334,18 @@ class aioresponses(object):
         key = (method, url)
         self.requests.setdefault(key, [])
         self.requests[key].append(RequestCall(args, kwargs))
+
+        # Automatically call response.raise_for_status() on a request if the
+        # request was initialized with raise_for_status=True. Also call
+        # response.raise_for_status() if the client session was initialized
+        # with raise_for_status=True, unless the request was called with
+        # raise_for_status=False.
+        raise_for_status = kwargs.get('raise_for_status')
+        if raise_for_status is None:
+            raise_for_status = getattr(
+                orig_self, '_raise_for_status', False
+            )
+        if raise_for_status:
+            response.raise_for_status()
+
         return response

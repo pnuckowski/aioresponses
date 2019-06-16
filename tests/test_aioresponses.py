@@ -8,7 +8,7 @@ from aiohttp import hdrs
 from aiohttp import http
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
-from asynctest import fail_on
+from asynctest import fail_on, skipIf
 from asynctest.case import TestCase
 from ddt import ddt, data
 
@@ -25,7 +25,7 @@ except ImportError:
     )
     from aiohttp.http_exceptions import HttpProcessingError
 
-from aioresponses.compat import URL
+from aioresponses.compat import AIOHTTP_VERSION, URL
 from aioresponses import CallbackResult, aioresponses
 
 
@@ -115,6 +115,17 @@ class AIOResponsesTestCase(TestCase):
         with self.assertRaises(ClientResponseError) as cm:
             response = yield from self.session.get(self.url)
             response.raise_for_status()
+        self.assertEqual(cm.exception.message, http.RESPONSES[400][0])
+
+    @aioresponses()
+    @asyncio.coroutine
+    @skipIf(condition=AIOHTTP_VERSION < '3.4.0',
+            reason='aiohttp<3.4.0 does not support raise_for_status '
+                   'arguments for requests')
+    def test_request_raise_for_status(self, m):
+        m.get(self.url, status=400)
+        with self.assertRaises(ClientResponseError) as cm:
+            yield from self.session.get(self.url, raise_for_status=True)
         self.assertEqual(cm.exception.message, http.RESPONSES[400][0])
 
     @aioresponses()
@@ -351,3 +362,48 @@ class AIOResponsesTestCase(TestCase):
         response = future.result()
         data = self.run_async(response.read())
         assert data == body
+
+
+class AIOResponsesRaiseForStatusSessionTestCase(TestCase):
+    """Test case for sessions with raise_for_status=True.
+
+    This flag, introduced in aiohttp v2.0.0, automatically calls
+    `raise_for_status()`.
+    It is overriden by the `raise_for_status` argument of the request since
+    aiohttp v3.4.a0.
+
+    """
+    use_default_loop = False
+
+    @asyncio.coroutine
+    def setUp(self):
+        self.url = 'http://example.com/api?foo=bar#fragment'
+        self.session = ClientSession(raise_for_status=True)
+        super().setUp()
+
+    @asyncio.coroutine
+    def tearDown(self):
+        close_result = self.session.close()
+        if close_result is not None:
+            yield from close_result
+        super().tearDown()
+
+    @aioresponses()
+    @asyncio.coroutine
+    def test_raise_for_status(self, m):
+        m.get(self.url, status=400)
+        with self.assertRaises(ClientResponseError) as cm:
+            yield from self.session.get(self.url)
+        self.assertEqual(cm.exception.message, http.RESPONSES[400][0])
+
+    @aioresponses()
+    @asyncio.coroutine
+    @skipIf(condition=AIOHTTP_VERSION < '3.4.0',
+            reason='aiohttp<3.4.0 does not support raise_for_status '
+                   'arguments for requests')
+    def test_do_not_raise_for_status(self, m):
+        m.get(self.url, status=400)
+        response = yield from self.session.get(self.url,
+                                               raise_for_status=False)
+
+        self.assertEqual(response.status, 400)
