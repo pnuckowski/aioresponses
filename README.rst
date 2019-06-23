@@ -176,7 +176,8 @@ for convenience use *payload* argument to mock out json response. Example below.
 .. code:: python
 
     import asyncio
-    from aiohttp import ClientSession, HttpProcessingError
+    from aiohttp import ClientSession
+    from aiohttp.http_exceptions import HttpProcessingError
     from aioresponses import aioresponses
 
     @aioresponses()
