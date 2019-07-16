@@ -67,7 +67,7 @@ matrix:
 
 env:
   global:
-    PYTEST_ADDOPTS: "--cov --cov-report=xml"
+    PYTEST_ADDOPTS: --cov --cov-report=xml
 
 install: pip install -U tox
 
