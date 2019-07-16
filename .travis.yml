@@ -64,17 +64,14 @@ matrix:
   - python: 3.7
     dist: xenial
     env: TOXENV=flake8
-  - python: 3.7
-    dist: xenial
-    env: TOXENV=coverage
 
-# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -U tox coveralls
+env:
+  global:
+    PYTEST_ADDOPTS: "--cov --cov-report=xml"
+
+install: pip install -U tox
 
 after_success:
-- coveralls
+  - bash <(curl -s https://codecov.io/bash) -Z -X coveragepy -X gcov -X xcode -f coverage.xml
 
-# command to run tests, e.g. python setup.py test
 script: tox -e ${TOXENV}
-
-
