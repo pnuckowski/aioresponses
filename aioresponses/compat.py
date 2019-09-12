@@ -23,11 +23,11 @@ if AIOHTTP_VERSION >= StrictVersion('3.0.0'):
             loop: 'Optional[asyncio.AbstractEventLoop]' = None
     ):
         protocol = ResponseHandler(loop=loop)
-        return StreamReader(protocol)
+        return StreamReader(protocol, loop=loop)
 
 else:
 
-    def stream_reader_factory():
+    def stream_reader_factory(loop=None):
         return StreamReader()
 
 

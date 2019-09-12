@@ -139,6 +139,8 @@ class RequestMatch(object):
             kwargs['traces'] = []
             kwargs['loop'] = loop
             kwargs['session'] = None
+        else:
+            loop = None
         # We need to initialize headers manually
         _headers = CIMultiDict({hdrs.CONTENT_TYPE: content_type})
         if headers:
@@ -154,7 +156,7 @@ class RequestMatch(object):
             resp.raw_headers = raw_headers
         resp.status = status
         resp.reason = reason
-        resp.content = stream_reader_factory()
+        resp.content = stream_reader_factory(loop)
         resp.content.feed_data(body)
         resp.content.feed_eof()
         return resp
