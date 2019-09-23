@@ -249,26 +249,30 @@ class aioresponses(object):
         self.patcher.stop()
         self.clear()
 
-    def head(self, url: 'Union[URL, str, Pattern]', **kwargs):
-        self.add(url, method=hdrs.METH_HEAD, **kwargs)
+    def head(self, url: 'Union[URL, str, Pattern]', **kwargs) -> RequestMatch:
+        return self.add(url, method=hdrs.METH_HEAD, **kwargs)
 
-    def get(self, url: 'Union[URL, str, Pattern]', **kwargs):
-        self.add(url, method=hdrs.METH_GET, **kwargs)
+    def get(self, url: 'Union[URL, str, Pattern]', **kwargs) -> RequestMatch:
+        return self.add(url, method=hdrs.METH_GET, **kwargs)
 
-    def post(self, url: 'Union[URL, str, Pattern]', **kwargs):
-        self.add(url, method=hdrs.METH_POST, **kwargs)
+    def post(self, url: 'Union[URL, str, Pattern]', **kwargs) -> RequestMatch:
+        return self.add(url, method=hdrs.METH_POST, **kwargs)
 
-    def put(self, url: 'Union[URL, str, Pattern]', **kwargs):
-        self.add(url, method=hdrs.METH_PUT, **kwargs)
+    def put(self, url: 'Union[URL, str, Pattern]', **kwargs) -> RequestMatch:
+        return self.add(url, method=hdrs.METH_PUT, **kwargs)
 
-    def patch(self, url: 'Union[URL, str, Pattern]', **kwargs):
-        self.add(url, method=hdrs.METH_PATCH, **kwargs)
+    def patch(self, url: 'Union[URL, str, Pattern]', **kwargs) -> RequestMatch:
+        return self.add(url, method=hdrs.METH_PATCH, **kwargs)
 
-    def delete(self, url: 'Union[URL, str, Pattern]', **kwargs):
-        self.add(url, method=hdrs.METH_DELETE, **kwargs)
+    def delete(
+        self, url: 'Union[URL, str, Pattern]', **kwargs
+    ) -> RequestMatch:
+        return self.add(url, method=hdrs.METH_DELETE, **kwargs)
 
-    def options(self, url: 'Union[URL, str, Pattern]', **kwargs):
-        self.add(url, method=hdrs.METH_OPTIONS, **kwargs)
+    def options(
+        self, url: 'Union[URL, str, Pattern]', **kwargs
+    ) -> RequestMatch:
+        return self.add(url, method=hdrs.METH_OPTIONS, **kwargs)
 
     def add(self, url: 'Union[URL, str, Pattern]', method: str = hdrs.METH_GET,
             status: int = 200,
@@ -281,8 +285,8 @@ class aioresponses(object):
             repeat: bool = False,
             timeout: bool = False,
             reason: Optional[str] = None,
-            callback: Optional[Callable] = None) -> None:
-        self._matches.append(RequestMatch(
+            callback: Optional[Callable] = None) -> RequestMatch:
+        match = RequestMatch(
             url,
             method=method,
             status=status,
@@ -296,7 +300,9 @@ class aioresponses(object):
             timeout=timeout,
             reason=reason,
             callback=callback,
-        ))
+        )
+        self._matches.append(match)
+        return match
 
     async def match(
             self, method: str, url: URL, **kwargs: Dict
