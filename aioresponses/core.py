@@ -321,6 +321,29 @@ class aioresponses(object):
         return response
 
     def matched_requests(self, matcher: RequestMatch) -> List[RequestCall]:
+        """
+        Given a RequestMatch, return all mocked requests that
+        matched this matcher.
+
+        Example:
+
+        loop = asyncio.get_event_loop()
+        session = aiohttp.ClientSession()
+
+        matcher = m.post('http://example.com', status=500)
+        m.post('http://example.com', status=200)
+
+        loop.run_until_complete(
+            session.post('http://example.com', json={"a": 1})
+        )
+        loop.run_until_complete(
+            session.post('http://example.com', json={"a": 2})
+        )
+
+        requests = aioresponses.matched_requests(matcher)
+        assert requests[0].kwargs["json"] == {"a": 1}
+        assert requests[1].kwargs["json"] == {"a": 2}
+        """
         matched = []
 
         for key, requests in self.requests.items():
