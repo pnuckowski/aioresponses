@@ -320,6 +320,15 @@ class aioresponses(object):
             raise response
         return response
 
+    def matched_requests(self, matcher: RequestMatch) -> List[RequestCall]:
+        matched = []
+
+        for key, requests in self.requests.items():
+            if matcher.match(*key):
+                matched.extend(requests)
+
+        return matched
+
     async def _request_mock(self, orig_self: ClientSession,
                             method: str, url: 'Union[URL, str]',
                             *args: Tuple,
