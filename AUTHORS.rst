@@ -5,7 +5,7 @@ Credits
 Development Lead
 ----------------
 
-* Paweł Nuckowski <p.nuckowski@gmail.com>
+* Pawel Nuckowski <p.nuckowski@gmail.com>
 
 Contributors
 ------------
