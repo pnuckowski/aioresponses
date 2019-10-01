@@ -56,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'aioresponses'
-copyright = u"2016, Paweł Nuckowski"
+copyright = u"2016, Pawel Nuckowski"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -210,7 +210,7 @@ latex_elements = {
 latex_documents = [
     ('index', 'aioresponses.tex',
      u'aioresponses Documentation',
-     u'Paweł Nuckowski', 'manual'),
+     u'Pawel Nuckowski', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -241,7 +241,7 @@ latex_documents = [
 man_pages = [
     ('index', 'aioresponses',
      u'aioresponses Documentation',
-     [u'Paweł Nuckowski'], 1)
+     [u'Pawel Nuckowski'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -256,7 +256,7 @@ man_pages = [
 texinfo_documents = [
     ('index', 'aioresponses',
      u'aioresponses Documentation',
-     u'Paweł Nuckowski',
+     u'Pawel Nuckowski',
      'aioresponses',
      'One line description of project.',
      'Miscellaneous'),
