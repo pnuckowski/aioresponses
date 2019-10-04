@@ -242,6 +242,7 @@ class aioresponses(object):
         self._matches = []
         self.patcher.start()
         self.patcher.return_value = self._request_mock
+        self.patcher._aioresponse = self
 
     def stop(self) -> None:
         for response in self._responses:
@@ -351,3 +352,11 @@ class aioresponses(object):
             response.raise_for_status()
 
         return response
+
+
+def get_active() -> aioresponses:
+    from aiohttp.client import ClientSession
+    response = getattr(ClientSession._request, "_aioresponse")
+    if response is None:
+        raise ValueError("No active aioresponse mock")
+    return response

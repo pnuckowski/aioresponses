@@ -26,7 +26,7 @@ except ImportError:
     from aiohttp.http_exceptions import HttpProcessingError
 
 from aioresponses.compat import AIOHTTP_VERSION, URL
-from aioresponses import CallbackResult, aioresponses
+from aioresponses import CallbackResult, aioresponses, get_active
 
 
 @ddt
@@ -362,6 +362,17 @@ class AIOResponsesTestCase(TestCase):
         response = future.result()
         data = self.run_async(response.read())
         assert data == body
+
+    def test_get_active_fails(self):
+        with self.assertRaises(ValueError, msg="No active aioresponse mock"):
+            get_active()
+
+    def test_get_active_works(self):
+        with aioresponses() as m1:
+            assert get_active() is m1
+
+        with aioresponses() as m2:
+            assert get_active() is m2
 
 
 class AIOResponsesRaiseForStatusSessionTestCase(TestCase):
