@@ -356,7 +356,7 @@ class aioresponses(object):
 
 def get_active() -> aioresponses:
     from aiohttp.client import ClientSession
-    response = getattr(ClientSession._request, "_aioresponse")
+    response = getattr(ClientSession._request, "_aioresponse", None)
     if response is None:
         raise ValueError("No active aioresponse mock")
     return response
