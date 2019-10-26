@@ -299,19 +299,39 @@ class aioresponses(object):
         ))
 
     async def match(
-            self, method: str, url: URL, **kwargs: Dict
+        self, method: str, url: URL,
+        allow_redirects: bool = True, **kwargs: Dict
     ) -> Optional['ClientResponse']:
-        for i, matcher in enumerate(self._matches):
-            if matcher.match(method, url):
-                response = await matcher.build_response(url, **kwargs)
-                break
-        else:
-            return None
+        history = []
+        while True:
+            for i, matcher in enumerate(self._matches):
+                if matcher.match(method, url):
+                    response = await matcher.build_response(
+                        url, allow_redirects=allow_redirects, **kwargs
+                    )
+                    break
+            else:
+                if history:
+                    raise Exception('Redirect leads to an unmocked url')
+                return None
 
-        if matcher.repeat is False:
-            del self._matches[i]
-        if isinstance(response, Exception):
-            raise response
+            if matcher.repeat is False:
+                del self._matches[i]
+            if isinstance(response, Exception):
+                raise response
+
+            if response.status in (
+                    301, 302, 303, 307, 308) and allow_redirects:
+                if hdrs.LOCATION not in response.headers:
+                    break
+                history.append(response)
+                url = URL(response.headers[hdrs.LOCATION])
+                continue
+            else:
+                break
+
+        response._history = tuple(history)
+
         return response
 
     async def _request_mock(self, orig_self: ClientSession,
