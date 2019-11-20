@@ -328,14 +328,16 @@ class aioresponses(object):
                 ))
 
         response = await self.match(method, url, **kwargs)
+
+        key = (method, url)
+        self.requests.setdefault(key, [])
+        self.requests[key].append(RequestCall(args, kwargs))
+
         if response is None:
             raise ClientConnectionError(
                 'Connection refused: {} {}'.format(method, url)
             )
         self._responses.append(response)
-        key = (method, url)
-        self.requests.setdefault(key, [])
-        self.requests[key].append(RequestCall(args, kwargs))
 
         # Automatically call response.raise_for_status() on a request if the
         # request was initialized with raise_for_status=True. Also call
