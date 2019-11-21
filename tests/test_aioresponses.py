@@ -262,6 +262,18 @@ class AIOResponsesTestCase(TestCase):
             self.assertEqual(m.requests[key][0].kwargs,
                              {'allow_redirects': True})
 
+    async def test_request_failure_in_case_session_is_closed(self):
+        async def do_request(session):
+            return await session.get(self.url)
+
+        with aioresponses():
+            async with ClientSession() as session:
+                coro = do_request(session)
+
+            with self.assertRaises(RuntimeError) as exception_info:
+                await coro
+            assert str(exception_info.exception) == "Session is closed"
+
     @asyncio.coroutine
     def test_address_as_instance_of_url_combined_with_pass_through(self):
         external_api = 'http://httpbin.org/status/201'

@@ -319,6 +319,9 @@ class aioresponses(object):
                             *args: Tuple,
                             **kwargs: Dict) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
+        if orig_self.closed:
+            raise RuntimeError('Session is closed')
+
         url = normalize_url(merge_params(url, kwargs.get('params')))
         url_str = str(url)
         for prefix in self._passthrough:
