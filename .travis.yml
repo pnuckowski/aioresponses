@@ -25,6 +25,8 @@ matrix:
     env: TOXENV=py35-aiohttp34
   - python: 3.5
     env: TOXENV=py35-aiohttp35
+  - python: 3.5
+    env: TOXENV=py35-aiohttp36
 
   - python: 3.6
     env: TOXENV=py36-aiohttp20
@@ -46,6 +48,8 @@ matrix:
     env: TOXENV=py36-aiohttp34
   - python: 3.6
     env: TOXENV=py36-aiohttp35
+  - python: 3.6
+    env: TOXENV=py36-aiohttp36
 
   - python: 3.7
     dist: xenial
@@ -56,6 +60,9 @@ matrix:
   - python: 3.7
     dist: xenial
     env: TOXENV=py37-aiohttp35
+  - python: 3.7
+    dist: xenial
+    env: TOXENV=py37-aiohttp36
 #  - python: 3.7
 #    dist: xenial
 #    env: TOXENV=py36-aiohttp-master
