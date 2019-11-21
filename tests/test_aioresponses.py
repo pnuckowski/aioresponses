@@ -102,7 +102,7 @@ class AIOResponsesTestCase(TestCase):
               headers={'Connection': 'keep-alive'})
         response = yield from self.session.get(self.url)
         expected_raw_headers = (
-            (b'Content-Type', b'text/html'),
+            (hdrs.CONTENT_TYPE.encode(), b'text/html'),
             (b'Connection', b'keep-alive')
         )
 
