@@ -262,16 +262,18 @@ class AIOResponsesTestCase(TestCase):
             self.assertEqual(m.requests[key][0].kwargs,
                              {'allow_redirects': True})
 
-    async def test_request_failure_in_case_session_is_closed(self):
-        async def do_request(session):
-            return await session.get(self.url)
+    @asyncio.coroutine
+    def test_request_failure_in_case_session_is_closed(self):
+        @asyncio.coroutine
+        def do_request(session):
+            return (yield from session.get(self.url))
 
         with aioresponses():
-            async with ClientSession() as session:
-                coro = do_request(session)
+            coro = do_request(self.session)
+            yield from self.session.close()
 
             with self.assertRaises(RuntimeError) as exception_info:
-                await coro
+                yield from coro
             assert str(exception_info.exception) == "Session is closed"
 
     @asyncio.coroutine
