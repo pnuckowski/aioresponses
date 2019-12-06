@@ -26,6 +26,13 @@ from .compat import (
     normalize_url,
 )
 
+try:
+    from collections.abc import Sequence, Sized
+except ImportError:
+    from collections import Sequence, Sized
+
+Call = namedtuple("Call", ["request", "response"])
+
 
 class CallbackResult:
 
@@ -45,6 +52,26 @@ class CallbackResult:
         self.headers = headers
         self.response_class = response_class
         self.reason = reason
+
+
+class CallList(Sequence, Sized):
+    def __init__(self):
+        self._calls = []
+
+    def __iter__(self):
+        return iter(self._calls)
+
+    def __len__(self):
+        return len(self._calls)
+
+    def __getitem__(self, idx):
+        return self._calls[idx]
+
+    def add(self, request, response):
+        self._calls.append(Call(request, response))
+
+    def clear(self):
+        self._calls = []
 
 
 class RequestMatch(object):
@@ -87,6 +114,21 @@ class RequestMatch(object):
             except (IndexError, KeyError):
                 self.reason = ''
         self.callback = callback
+
+    def __eq__(self, other: 'RequestMatch'):
+        return all([
+            str(self.url_or_pattern) == str(other.url_or_pattern),
+            self.method == other.method,
+            self.body == other.body,
+            self.payload == other.payload,
+            self.repeat == other.repeat,
+        ])
+
+    def __str__(self):
+        return "Request('%s': '%s')" % (
+            self.method,
+            self.url_or_pattern,
+        )
 
     def match_str(self, url: URL) -> bool:
         return self.url_or_pattern == url
@@ -190,10 +232,22 @@ class RequestMatch(object):
 RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
 
 
+class _AnyComparer(list):
+    """A list which checks if it contains a call which may have an
+    argument of ANY, flipping the components of item and self from
+    their traditional locations so that ANY is guaranteed to be on
+    the left."""
+    def __contains__(self, item):
+        for _call in self:
+            if _call == item:
+                return True
+        return False
+
+
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
     _matches = None  # type: List[RequestMatch]
-    _responses = None  # type: List[ClientResponse]
+    _responses = None  # type: Dict
     requests = None  # type: Dict
 
     def __init__(self, **kwargs):
@@ -203,6 +257,10 @@ class aioresponses(object):
                              side_effect=self._request_mock,
                              autospec=True)
         self.requests = {}
+        self._responses = {}
+        self._calls = CallList()
+        self._request_match = None
+        self._request_match_list = CallList()
 
     def __enter__(self) -> 'aioresponses':
         self.start()
@@ -234,20 +292,25 @@ class aioresponses(object):
         return wrapped
 
     def clear(self):
-        self._responses.clear()
         self._matches.clear()
+        self._request_match = None
+        self._request_match_list.clear()
+        self._calls.clear()
 
     def start(self):
-        self._responses = []
         self._matches = []
         self.patcher.start()
         self.patcher.return_value = self._request_mock
 
     def stop(self) -> None:
-        for response in self._responses:
+        for response in self._responses.values():
             response.close()
         self.patcher.stop()
         self.clear()
+
+    @property
+    def calls(self):
+        return self._calls
 
     def head(self, url: 'Union[URL, str, Pattern]', **kwargs):
         self.add(url, method=hdrs.METH_HEAD, **kwargs)
@@ -300,19 +363,118 @@ class aioresponses(object):
 
     async def match(
             self, method: str, url: URL, **kwargs: Dict
-    ) -> Optional['ClientResponse']:
+    ) -> (Optional['ClientResponse'], Optional['RequestMatch']):
         for i, matcher in enumerate(self._matches):
             if matcher.match(method, url):
                 response = await matcher.build_response(url, **kwargs)
                 break
         else:
-            return None
+            return None, None
 
         if matcher.repeat is False:
             del self._matches[i]
         if isinstance(response, Exception):
             raise response
-        return response
+        return response, matcher
+
+    def _call_matcher(self, _call):
+        """
+        Given a call (or simply an (args, kwargs) tuple), return a
+        comparison key suitable for matching with other calls.
+        This is a best effort method which relies on the spec's signature,
+        if available, or falls back on the arguments themselves.
+        """
+
+        if isinstance(_call, RequestMatch):
+            return _call
+        if len(_call) == 2:
+            args, kwargs = _call
+            return RequestMatch(*args, **kwargs)
+        else:
+            raise NotImplementedError
+
+    def _format_call_signature(self, args, kwargs):
+        message = '%s(%%s)' % self.__class__.__name__ or 'mock'
+        formatted_args = ''
+        args_string = ', '.join([repr(arg) for arg in args])
+        kwargs_string = ', '.join([
+            '%s=%r' % (key, value) for key, value in kwargs.items()
+        ])
+        if args_string:
+            formatted_args = args_string
+        if kwargs_string:
+            if formatted_args:
+                formatted_args += ', '
+            formatted_args += kwargs_string
+
+        return message % formatted_args
+
+    def assert_not_called(self):
+        """assert that the mock was never called.
+        """
+        if len(self._calls) != 0:
+            msg = ("Expected '%s' to not have been called. Called %s times."
+                   % (self.__class__.__name__,
+                      len(self._calls)))
+            raise AssertionError(msg)
+
+    def assert_called(self):
+        """assert that the mock was never called.
+        """
+        if len(self._calls) == 0:
+            msg = ("Expected '%s' to not have been called. Called %s times."
+                   % (self.__class__.__name__,
+                      len(self._calls)))
+            raise AssertionError(msg)
+
+    def assert_called_once(self):
+        """assert that the mock was called only once.
+        """
+        if not len(self._calls) == 1:
+            msg = ("Expected '%s' to have been called once. Called %s times."
+                   % (self.__class__.__name__,
+                      len(self._calls)))
+
+            raise AssertionError(msg)
+
+    def assert_called_with(self, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        self.assert_called()
+
+        expected = self._call_matcher((args, kwargs))
+        actual = self._call_matcher(self._request_match)
+        if expected != actual:
+            msg = ("Expected '%s' to been called with '%s'. Actual call '%s'"
+                   % (self.__class__.__name__,
+                      expected,
+                      actual))
+
+            raise AssertionError(msg)
+
+    def assert_any_call(self, *args, **kwargs):
+        """assert the mock has been called with the specified arguments.
+        The assert passes if the mock has *ever* been called, unlike
+        `assert_called_with` and `assert_called_once_with` that only pass if
+        the call is the most recent one."""
+        expected = self._call_matcher((args, kwargs))
+        cause = expected if isinstance(expected, Exception) else None
+        actual = [self._call_matcher(request)
+                  for request, _ in self._request_match_list]
+        if cause or expected not in _AnyComparer(actual):
+            expected_string = self._format_call_signature(args, kwargs)
+            raise AssertionError(
+                '%s call not found' % expected_string
+            ) from cause
+
+    def assert_called_once_with(self, *args, **kwargs):
+        """assert that the mock was called once with the specified arguments.
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the only call to the mock."""
+        self.assert_called_once()
+        self.assert_called_with(*args, **kwargs)
 
     async def _request_mock(self, orig_self: ClientSession,
                             method: str, url: 'Union[URL, str]',
@@ -330,7 +492,11 @@ class aioresponses(object):
                     orig_self, method, url, *args, **kwargs
                 ))
 
-        response = await self.match(method, url, **kwargs)
+        response, request = await self.match(method, url, **kwargs)
+
+        self._request_match = request
+        self._request_match_list.add(request, response)
+        self._calls.add(request, response)
 
         key = (method, url)
         self.requests.setdefault(key, [])
@@ -340,7 +506,7 @@ class aioresponses(object):
             raise ClientConnectionError(
                 'Connection refused: {} {}'.format(method, url)
             )
-        self._responses.append(response)
+        self._responses[key] = response
 
         # Automatically call response.raise_for_status() on a request if the
         # request was initialized with raise_for_status=True. Also call
