@@ -231,23 +231,39 @@ class AIOResponsesTestCase(TestCase):
 
     @asyncio.coroutine
     def test_multiple_requests(self):
+        """Ensure that requests are saved the way they would have been sent."""
         with aioresponses() as m:
             m.get(self.url, status=200)
             m.get(self.url, status=201)
             m.get(self.url, status=202)
-            resp = yield from self.session.get(self.url)
+            json_content_as_ref = [1]
+            resp = yield from self.session.get(self.url, json=json_content_as_ref)
             self.assertEqual(resp.status, 200)
-            resp = yield from self.session.get(self.url)
+            json_content_as_ref[:] = [2]
+            resp = yield from self.session.get(self.url, json=json_content_as_ref)
             self.assertEqual(resp.status, 201)
-            resp = yield from self.session.get(self.url)
+            json_content_as_ref[:] = [3]
+            resp = yield from self.session.get(self.url, json=json_content_as_ref)
             self.assertEqual(resp.status, 202)
 
             key = ('GET', URL(self.url))
             self.assertIn(key, m.requests)
             self.assertEqual(len(m.requests[key]), 3)
-            self.assertEqual(m.requests[key][0].args, tuple())
-            self.assertEqual(m.requests[key][0].kwargs,
-                             {'allow_redirects': True})
+
+            first_request = m.requests[key][0]
+            self.assertEqual(first_request.args, tuple())
+            self.assertEqual(first_request.kwargs,
+                             {'allow_redirects': True, "json": [1]})
+
+            second_request = m.requests[key][1]
+            self.assertEqual(second_request.args, tuple())
+            self.assertEqual(second_request.kwargs,
+                             {'allow_redirects': True, "json": [2]})
+
+            third_request = m.requests[key][2]
+            self.assertEqual(third_request.args, tuple())
+            self.assertEqual(third_request.kwargs,
+                             {'allow_redirects': True, "json": [3]})
 
     @asyncio.coroutine
     def test_request_retrieval_in_case_no_response(self):

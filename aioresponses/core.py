@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import json
+import copy
 from collections import namedtuple
 from distutils.version import StrictVersion
 from functools import wraps
@@ -334,7 +335,7 @@ class aioresponses(object):
 
         key = (method, url)
         self.requests.setdefault(key, [])
-        self.requests[key].append(RequestCall(args, kwargs))
+        self.requests[key].append(RequestCall(args, copy.deepcopy(kwargs)))
 
         if response is None:
             raise ClientConnectionError(
