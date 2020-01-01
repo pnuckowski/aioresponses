@@ -311,8 +311,6 @@ class aioresponses(object):
                     )
                     break
             else:
-                if history:
-                    raise Exception('Redirect leads to an unmocked url')
                 return None
 
             if matcher.repeat is False:
