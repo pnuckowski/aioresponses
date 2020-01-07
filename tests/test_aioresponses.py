@@ -448,11 +448,11 @@ class AIOResponseRedirectTest(TestCase):
             status=307,
             headers={"Location": "https://httpbin.org"},
         )
-        with self.assertRaises(Exception) as cm:
+        with self.assertRaises(ClientConnectionError) as cm:
             response = yield from self.session.get(
                 self.url, allow_redirects=True
             )
-        self.assertEqual(str(cm.exception), 'Redirect leads to an unmocked url')
+        self.assertEqual(str(cm.exception), 'Connection refused: GET http://10.1.1.1:8080/redirect')
 
     @aioresponses()
     @asyncio.coroutine
