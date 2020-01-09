@@ -450,3 +450,56 @@ class AIOResponsesRaiseForStatusSessionTestCase(TestCase):
                                                raise_for_status=False)
 
         self.assertEqual(response.status, 400)
+
+
+class AIOResponseRedirectTest(TestCase):
+    @asyncio.coroutine
+    def setUp(self):
+        self.url = "http://10.1.1.1:8080/redirect"
+        self.session = ClientSession()
+        super().setUp()
+
+    @asyncio.coroutine
+    def tearDown(self):
+        close_result = self.session.close()
+        if close_result is not None:
+            yield from close_result
+        super().tearDown()
+
+    @aioresponses()
+    @asyncio.coroutine
+    def test_redirect_followed(self, rsps):
+        rsps.get(
+            self.url,
+            status=307,
+            headers={"Location": "https://httpbin.org"},
+        )
+        rsps.get("https://httpbin.org")
+        response = yield from self.session.get(
+            self.url, allow_redirects=True
+        )
+        self.assertEqual(response.status, 200)
+        self.assertEqual(str(response.url), "https://httpbin.org")
+        self.assertEqual(len(response.history), 1)
+        self.assertEqual(str(response.history[0].url), self.url)
+
+    @aioresponses()
+    @asyncio.coroutine
+    def test_redirect_missing_mocked_match(self, rsps):
+        rsps.get(
+            self.url,
+            status=307,
+            headers={"Location": "https://httpbin.org"},
+        )
+        with self.assertRaises(ClientConnectionError) as cm:
+            response = yield from self.session.get(
+                self.url, allow_redirects=True
+            )
+        self.assertEqual(str(cm.exception), 'Connection refused: GET http://10.1.1.1:8080/redirect')
+
+    @aioresponses()
+    @asyncio.coroutine
+    def test_redirect_missing_location_header(self, rsps):
+        rsps.get(self.url, status=307)
+        response = yield from self.session.get(self.url, allow_redirects=True)
+        self.assertEqual(str(response.url), self.url)
