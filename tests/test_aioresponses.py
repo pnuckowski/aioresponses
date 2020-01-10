@@ -25,8 +25,9 @@ except ImportError:
     )
     from aiohttp.http_exceptions import HttpProcessingError
 
-from aioresponses.compat import AIOHTTP_VERSION, URL
 from aioresponses import CallbackResult, aioresponses
+from aioresponses.compat import AIOHTTP_VERSION, URL
+from aioresponses.core import RequestCall
 
 
 @ddt
@@ -405,6 +406,45 @@ class AIOResponsesTestCase(TestCase):
         response = future.result()
         data = self.run_async(response.read())
         assert data == body
+
+    @aioresponses()
+    @asyncio.coroutine
+    def test_matched_requests(self, mocked):
+        matcher_1 = mocked.get(
+            re.compile(r'^http://example\.com/api\?foo=.*$'),
+            status=200
+        )
+
+        matcher_2 = mocked.get(
+            re.compile(r'^http://example\.com/api\?foo=.*$'),
+            status=200
+        )
+
+        matcher_3 = mocked.get('http://example.com/other_api?foo=c', status=200)
+
+        url_1 = 'http://example.com/api'
+        url_3 = 'http://example.com/other_api'
+
+        yield from self.session.get(url_1, params={"foo": "a"})
+        yield from self.session.get(url_1, params={"foo": "b"})
+        yield from self.session.get(url_3, params={"foo": "c"})
+
+        # matcher 1 and 2 match the same requests,
+        # since they have the same regex as key
+        matched_1 = mocked.matched_requests(matcher_1)
+        matched_2 = mocked.matched_requests(matcher_2)
+        expected = [
+            RequestCall(tuple(), {"allow_redirects": True, "params": {"foo": "a"}}),
+            RequestCall(tuple(), {"allow_redirects": True, "params": {"foo": "b"}}),
+        ]
+        assert matched_1 == expected
+        assert matched_2 == expected
+
+        # matcher 3 matches another set of requests
+        matched_3 = mocked.matched_requests(matcher_3)
+        assert matched_3 == [
+            RequestCall(tuple(), {"allow_redirects": True, "params": {"foo": "c"}}),
+        ]
 
 
 class AIOResponsesRaiseForStatusSessionTestCase(TestCase):

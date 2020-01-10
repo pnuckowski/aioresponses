@@ -213,6 +213,31 @@ for convenience use *payload* argument to mock out json response. Example below.
         assert resp.status == 418
 
 
+**aioresponses allows to get the mocked requests**
+
+.. code:: python
+
+    import asyncio
+    import aiohttp
+    from aioresponses import aioresponses
+
+    @aioresponses()
+    def test_requests(m):
+        loop = asyncio.get_event_loop()
+        session = aiohttp.ClientSession()
+
+        matcher = m.post('http://example.com', status=500)
+        m.post('http://example.com', status=200)
+
+        loop.run_until_complete(session.post('http://example.com', json={"a": 1}))
+        loop.run_until_complete(session.post('http://example.com', json={"a": 2}))
+
+        requests = aioresponses.matched_requests(matcher)
+        assert requests[0].kwargs["json"] == {"a": 1}
+        assert requests[1].kwargs["json"] == {"a": 2}
+
+
+
 **aioresponses can be used in a pytest fixture**
 
 .. code:: python
