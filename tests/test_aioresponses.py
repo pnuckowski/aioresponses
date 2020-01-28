@@ -266,6 +266,29 @@ class AIOResponsesTestCase(TestCase):
                              {'allow_redirects': True, "json": [3]})
 
     @asyncio.coroutine
+    def test_request_with_non_deepcopyable_parameter(self):
+        def non_deep_copyable():
+            """A generator does not allow deepcopy."""
+            for line in ["header1,header2", "v1,v2", "v10,v20"]:
+                yield line
+
+        generator_value = non_deep_copyable()
+
+        with aioresponses() as m:
+            m.get(self.url, status=200)
+            resp = yield from self.session.get(self.url, data=generator_value)
+            self.assertEqual(resp.status, 200)
+
+            key = ('GET', URL(self.url))
+            self.assertIn(key, m.requests)
+            self.assertEqual(len(m.requests[key]), 1)
+
+            request = m.requests[key][0]
+            self.assertEqual(request.args, tuple())
+            self.assertEqual(request.kwargs,
+                             {'allow_redirects': True, "data": generator_value})
+
+    @asyncio.coroutine
     def test_request_retrieval_in_case_no_response(self):
         with aioresponses() as m:
             with self.assertRaises(ClientConnectionError):

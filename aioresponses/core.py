@@ -353,7 +353,12 @@ class aioresponses(object):
 
         key = (method, url)
         self.requests.setdefault(key, [])
-        self.requests[key].append(RequestCall(args, copy.deepcopy(kwargs)))
+        try:
+            kwargs_copy = copy.deepcopy(kwargs)
+        except TypeError:
+            # Handle the fact that some values cannot be deep copied
+            kwargs_copy = kwargs
+        self.requests[key].append(RequestCall(args, kwargs_copy))
 
         if response is None:
             raise ClientConnectionError(
