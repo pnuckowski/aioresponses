@@ -341,12 +341,13 @@ class aioresponses(object):
         if orig_self.closed:
             raise RuntimeError('Session is closed')
 
+        url_origin = url
         url = normalize_url(merge_params(url, kwargs.get('params')))
         url_str = str(url)
         for prefix in self._passthrough:
             if url_str.startswith(prefix):
                 return (await self.patcher.temp_original(
-                    orig_self, method, url, *args, **kwargs
+                    orig_self, method, url_origin, *args, **kwargs
                 ))
 
         response = await self.match(method, url, **kwargs)
