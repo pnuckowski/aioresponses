@@ -407,6 +407,24 @@ class AIOResponsesTestCase(TestCase):
         assert data == body
 
 
+    @aioresponses()
+    @asyncio.coroutine
+    def test_exception_requests_are_tracked(self, mocked):
+        kwargs = {"json": [42], "allow_redirects": True}
+        mocked.get(self.url, exception=ValueError('oops'))
+
+        with self.assertRaises(ValueError):
+            yield from self.session.get(self.url, **kwargs)
+
+        key = ('GET', URL(self.url))
+        mocked_requests = mocked.requests[key]
+        self.assertEqual(len(mocked_requests), 1)
+
+        request = mocked_requests[0]
+        self.assertEqual(request.args, ())
+        self.assertEqual(request.kwargs, kwargs)
+
+
 class AIOResponsesRaiseForStatusSessionTestCase(TestCase):
     """Test case for sessions with raise_for_status=True.
 
