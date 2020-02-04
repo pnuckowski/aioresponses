@@ -349,11 +349,11 @@ class aioresponses(object):
                     orig_self, method, url, *args, **kwargs
                 ))
 
-        response = await self.match(method, url, **kwargs)
-
         key = (method, url)
         self.requests.setdefault(key, [])
         self.requests[key].append(RequestCall(args, copy.deepcopy(kwargs)))
+
+        response = await self.match(method, url, **kwargs)
 
         if response is None:
             raise ClientConnectionError(
