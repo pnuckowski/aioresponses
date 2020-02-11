@@ -237,13 +237,19 @@ class AIOResponsesTestCase(TestCase):
             m.get(self.url, status=201)
             m.get(self.url, status=202)
             json_content_as_ref = [1]
-            resp = yield from self.session.get(self.url, json=json_content_as_ref)
+            resp = yield from self.session.get(
+                self.url, json=json_content_as_ref
+            )
             self.assertEqual(resp.status, 200)
             json_content_as_ref[:] = [2]
-            resp = yield from self.session.get(self.url, json=json_content_as_ref)
+            resp = yield from self.session.get(
+                self.url, json=json_content_as_ref
+            )
             self.assertEqual(resp.status, 201)
             json_content_as_ref[:] = [3]
-            resp = yield from self.session.get(self.url, json=json_content_as_ref)
+            resp = yield from self.session.get(
+                self.url, json=json_content_as_ref
+            )
             self.assertEqual(resp.status, 202)
 
             key = ('GET', URL(self.url))
@@ -429,6 +435,23 @@ class AIOResponsesTestCase(TestCase):
         data = self.run_async(response.read())
         assert data == body
 
+    @aioresponses()
+    @asyncio.coroutine
+    def test_exception_requests_are_tracked(self, mocked):
+        kwargs = {"json": [42], "allow_redirects": True}
+        mocked.get(self.url, exception=ValueError('oops'))
+
+        with self.assertRaises(ValueError):
+            yield from self.session.get(self.url, **kwargs)
+
+        key = ('GET', URL(self.url))
+        mocked_requests = mocked.requests[key]
+        self.assertEqual(len(mocked_requests), 1)
+
+        request = mocked_requests[0]
+        self.assertEqual(request.args, ())
+        self.assertEqual(request.kwargs, kwargs)
+
 
 class AIOResponsesRaiseForStatusSessionTestCase(TestCase):
     """Test case for sessions with raise_for_status=True.
@@ -515,10 +538,13 @@ class AIOResponseRedirectTest(TestCase):
             headers={"Location": "https://httpbin.org"},
         )
         with self.assertRaises(ClientConnectionError) as cm:
-            response = yield from self.session.get(
+            yield from self.session.get(
                 self.url, allow_redirects=True
             )
-        self.assertEqual(str(cm.exception), 'Connection refused: GET http://10.1.1.1:8080/redirect')
+        self.assertEqual(
+            str(cm.exception),
+            'Connection refused: GET http://10.1.1.1:8080/redirect'
+        )
 
     @aioresponses()
     @asyncio.coroutine

@@ -349,8 +349,6 @@ class aioresponses(object):
                     orig_self, method, url, *args, **kwargs
                 ))
 
-        response = await self.match(method, url, **kwargs)
-
         key = (method, url)
         self.requests.setdefault(key, [])
         try:
@@ -359,6 +357,8 @@ class aioresponses(object):
             # Handle the fact that some values cannot be deep copied
             kwargs_copy = kwargs
         self.requests[key].append(RequestCall(args, kwargs_copy))
+
+        response = await self.match(method, url, **kwargs)
 
         if response is None:
             raise ClientConnectionError(
