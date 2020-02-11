@@ -412,7 +412,7 @@ class AIOResponsesRaiseForStatusSessionTestCase(TestCase):
 
     This flag, introduced in aiohttp v2.0.0, automatically calls
     `raise_for_status()`.
-    It is overriden by the `raise_for_status` argument of the request since
+    It is overridden by the `raise_for_status` argument of the request since
     aiohttp v3.4.a0.
 
     """
