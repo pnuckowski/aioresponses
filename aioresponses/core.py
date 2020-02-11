@@ -16,7 +16,7 @@ from aiohttp import (
     http
 )
 from aiohttp.helpers import TimerNoop
-from multidict import CIMultiDict
+from multidict import CIMultiDict, CIMultiDictProxy
 
 from .compat import (
     AIOHTTP_VERSION,
@@ -113,6 +113,7 @@ class RequestMatch(object):
 
     def _build_response(self, url: 'Union[URL, str]',
                         method: str = hdrs.METH_GET,
+                        request_headers: Dict = None,
                         status: int = 200,
                         body: str = '',
                         content_type: str = 'application/json',
@@ -126,12 +127,18 @@ class RequestMatch(object):
             body = json.dumps(payload)
         if not isinstance(body, bytes):
             body = str.encode(body)
+        if request_headers is None:
+            request_headers = {}
         kwargs = {}
         if AIOHTTP_VERSION >= StrictVersion('3.1.0'):
             loop = Mock()
             loop.get_debug = Mock()
             loop.get_debug.return_value = True
-            kwargs['request_info'] = Mock()
+            kwargs['request_info'] = Mock(
+                url=url,
+                method=method,
+                headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
+            )
             kwargs['writer'] = Mock()
             kwargs['continue100'] = None
             kwargs['timer'] = TimerNoop()
@@ -178,6 +185,7 @@ class RequestMatch(object):
         resp = self._build_response(
             url=url,
             method=result.method,
+            request_headers=kwargs.get("headers"),
             status=result.status,
             body=result.body,
             content_type=result.content_type,

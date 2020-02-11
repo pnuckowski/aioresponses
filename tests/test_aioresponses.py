@@ -552,3 +552,30 @@ class AIOResponseRedirectTest(TestCase):
         rsps.get(self.url, status=307)
         response = yield from self.session.get(self.url, allow_redirects=True)
         self.assertEqual(str(response.url), self.url)
+
+    @aioresponses()
+    @asyncio.coroutine
+    @skipIf(condition=AIOHTTP_VERSION < '3.1.0',
+            reason='aiohttp<3.1.0 does not add request info on response')
+    def test_request_info(self, rsps):
+        rsps.get(self.url, status=200)
+
+        response = yield from self.session.get(self.url)
+
+        request_info = response.request_info
+        assert str(request_info.url) == self.url
+        assert request_info.headers == {}
+
+    @aioresponses()
+    @asyncio.coroutine
+    @skipIf(condition=AIOHTTP_VERSION < '3.1.0',
+            reason='aiohttp<3.1.0 does not add request info on response')
+    def test_request_info_with_original_request_headers(self, rsps):
+        headers = {"Authorization": "Bearer access-token"}
+        rsps.get(self.url, status=200)
+
+        response = yield from self.session.get(self.url, headers=headers)
+
+        request_info = response.request_info
+        assert str(request_info.url) == self.url
+        assert request_info.headers == headers
