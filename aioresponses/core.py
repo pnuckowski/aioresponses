@@ -26,6 +26,8 @@ from .compat import (
     merge_params,
     normalize_url,
 )
+if AIOHTTP_VERSION >= StrictVersion('3.1.0'):
+    from aiohttp import RequestInfo
 
 
 class CallbackResult:
@@ -134,7 +136,7 @@ class RequestMatch(object):
             loop = Mock()
             loop.get_debug = Mock()
             loop.get_debug.return_value = True
-            kwargs['request_info'] = Mock(
+            kwargs['request_info'] = RequestInfo(
                 url=url,
                 method=method,
                 headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
