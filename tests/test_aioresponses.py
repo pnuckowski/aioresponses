@@ -340,6 +340,23 @@ class AIOResponsesTestCase(TestCase):
             self.assertEqual(api.status, 200)
             self.assertEqual(ext.status, 201)
 
+    @asyncio.coroutine
+    def test_pass_through_with_origin_params(self):
+        external_api = 'http://httpbin.org/get'
+
+        @asyncio.coroutine
+        def doit(params):
+            # we have to hit actual url,
+            # otherwise we do not test pass through option properly
+            ext_rep = (yield from self.session.get(URL(external_api), params=params))
+            return ext_rep
+
+        with aioresponses(passthrough=[external_api]) as m:
+            params = {'foo': 'bar'}
+            ext = yield from doit(params=params)
+            self.assertEqual(ext.status, 200)
+            self.assertEqual(str(ext.url), 'http://httpbin.org/get?foo=bar')
+
     @aioresponses()
     @asyncio.coroutine
     def test_custom_response_class(self, m):
