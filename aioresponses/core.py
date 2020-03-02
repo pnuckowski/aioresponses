@@ -155,6 +155,10 @@ class RequestMatch(object):
             _headers.update(headers)
         raw_headers = self._build_raw_headers(_headers)
         resp = response_class(method, url, **kwargs)
+
+        for hdr in _headers.getall(hdrs.SET_COOKIE, ()):
+            resp.cookies.load(hdr)
+
         if AIOHTTP_VERSION >= StrictVersion('3.3.0'):
             # Reified attributes
             resp._headers = _headers
