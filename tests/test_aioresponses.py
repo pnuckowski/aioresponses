@@ -96,6 +96,15 @@ class AIOResponsesTestCase(TestCase):
 
     @aioresponses()
     @asyncio.coroutine
+    def test_returned_response_cookies(self, m):
+        m.get(self.url,
+              headers={'Set-Cookie': 'cookie=value'})
+        response = yield from self.session.get(self.url)
+
+        self.assertEqual(response.cookies['cookie'].value, 'value')
+
+    @aioresponses()
+    @asyncio.coroutine
     def test_returned_response_raw_headers(self, m):
         m.get(self.url,
               content_type='text/html',
