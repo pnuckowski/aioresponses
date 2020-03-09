@@ -11,7 +11,7 @@ from aiohttp.client_reqrep import ClientResponse
 from asynctest import fail_on, skipIf
 from asynctest.case import TestCase
 from ddt import ddt, data
-
+from asyncio import CancelledError, TimeoutError
 try:
     from aiohttp.errors import (
         ClientConnectionError,
@@ -223,11 +223,42 @@ class AIOResponsesTestCase(TestCase):
                 yield from self.session.get('http://example.com/foo')
 
     @asyncio.coroutine
-    def test_raising_custom_error(self):
+    def test_raising_exception(self):
         with aioresponses() as aiomock:
-            aiomock.get(self.url, exception=HttpProcessingError(message='foo'))
+            url = 'http://example.com/Exception'
+            aiomock.get(url, exception=Exception)
+            with self.assertRaises(Exception):
+                yield from self.session.get(url)
+
+            url = 'http://example.com/Exception_object'
+            aiomock.get(url, exception=Exception())
+            with self.assertRaises(Exception):
+                yield from self.session.get(url)
+
+            url = 'http://example.com/BaseException'
+            aiomock.get(url, exception=BaseException)
+            with self.assertRaises(BaseException):
+                yield from self.session.get(url)
+
+            url = 'http://example.com/BaseException_object'
+            aiomock.get(url, exception=BaseException())
+            with self.assertRaises(BaseException):
+                yield from self.session.get(url)
+
+            url = 'http://example.com/CancelError'
+            aiomock.get(url, exception=CancelledError)
+            with self.assertRaises(CancelledError):
+                yield from self.session.get(url)
+
+            url = 'http://example.com/TimeoutError'
+            aiomock.get(url, exception=TimeoutError)
+            with self.assertRaises(TimeoutError):
+                yield from self.session.get(url)
+
+            url = 'http://example.com/HttpProcessingError'
+            aiomock.get(url, exception=HttpProcessingError(message='foo'))
             with self.assertRaises(HttpProcessingError):
-                yield from self.session.get(self.url)
+                yield from self.session.get(url)
 
     @asyncio.coroutine
     def test_multiple_requests(self):
