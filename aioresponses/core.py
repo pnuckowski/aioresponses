@@ -7,7 +7,7 @@ from distutils.version import StrictVersion
 from functools import wraps
 from typing import Callable, Dict, Tuple, Union, Optional, List  # noqa
 from unittest.mock import Mock, patch
-
+import inspect
 from aiohttp import (
     ClientConnectionError,
     ClientResponse,
@@ -174,10 +174,11 @@ class RequestMatch(object):
         return resp
 
     async def build_response(
-            self, url: URL, **kwargs: Dict
+            self, url: URL, **kwargs
     ) -> 'Union[ClientResponse, Exception]':
-        if isinstance(self.exception, Exception):
+        if self.exception is not None:
             return self.exception
+
         if callable(self.callback):
             if asyncio.iscoroutinefunction(self.callback):
                 result = await self.callback(url, **kwargs)
@@ -311,15 +312,26 @@ class aioresponses(object):
             callback=callback,
         ))
 
+    @staticmethod
+    def is_exception(resp_or_exc: Union[ClientResponse, Exception]) -> bool:
+        if inspect.isclass(resp_or_exc):
+            parent_classes = set(inspect.getmro(resp_or_exc))
+            if {Exception, BaseException} & parent_classes:
+                return True
+        else:
+            if isinstance(resp_or_exc, (Exception, BaseException)):
+                return True
+        return False
+
     async def match(
-        self, method: str, url: URL,
-        allow_redirects: bool = True, **kwargs: Dict
+            self, method: str, url: URL,
+            allow_redirects: bool = True, **kwargs: Dict
     ) -> Optional['ClientResponse']:
         history = []
         while True:
             for i, matcher in enumerate(self._matches):
                 if matcher.match(method, url):
-                    response = await matcher.build_response(
+                    response_or_exc = await matcher.build_response(
                         url, allow_redirects=allow_redirects, **kwargs
                     )
                     break
@@ -328,22 +340,23 @@ class aioresponses(object):
 
             if matcher.repeat is False:
                 del self._matches[i]
-            if isinstance(response, Exception):
-                raise response
 
-            if response.status in (
+            if self.is_exception(response_or_exc):
+                raise response_or_exc
+
+            if response_or_exc.status in (
                     301, 302, 303, 307, 308) and allow_redirects:
-                if hdrs.LOCATION not in response.headers:
+                if hdrs.LOCATION not in response_or_exc.headers:
                     break
-                history.append(response)
-                url = URL(response.headers[hdrs.LOCATION])
+                history.append(response_or_exc)
+                url = URL(response_or_exc.headers[hdrs.LOCATION])
                 continue
             else:
                 break
 
-        response._history = tuple(history)
+        response_or_exc._history = tuple(history)
 
-        return response
+        return response_or_exc
 
     async def _request_mock(self, orig_self: ClientSession,
                             method: str, url: 'Union[URL, str]',
