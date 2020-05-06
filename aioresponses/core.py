@@ -350,6 +350,7 @@ class aioresponses(object):
                     break
                 history.append(response_or_exc)
                 url = URL(response_or_exc.headers[hdrs.LOCATION])
+                method = 'get'
                 continue
             else:
                 break
