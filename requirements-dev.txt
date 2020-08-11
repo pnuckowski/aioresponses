@@ -9,4 +9,3 @@ pytest-cov==2.6.0
 pytest-html==1.19.0
 ddt==1.2.0
 typing
-asynctest==0.12.2
