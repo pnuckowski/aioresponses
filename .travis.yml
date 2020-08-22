@@ -5,37 +5,6 @@ language: python
 
 matrix:
   include:
-  - python: 3.5
-    env: TOXENV=py35-aiohttp20
-  - python: 3.5
-    env: TOXENV=py35-aiohttp21
-  - python: 3.5
-    env: TOXENV=py35-aiohttp22
-  - python: 3.5
-    env: TOXENV=py35-aiohttp23
-  - python: 3.5
-    env: TOXENV=py35-aiohttp30
-  - python: 3.5
-    env: TOXENV=py35-aiohttp31
-  - python: 3.5
-    env: TOXENV=py35-aiohttp32
-  - python: 3.5
-    env: TOXENV=py35-aiohttp33
-  - python: 3.5
-    env: TOXENV=py35-aiohttp34
-  - python: 3.5
-    env: TOXENV=py35-aiohttp35
-  - python: 3.5
-    env: TOXENV=py35-aiohttp36
-
-  - python: 3.6
-    env: TOXENV=py36-aiohttp20
-  - python: 3.6
-    env: TOXENV=py36-aiohttp21
-  - python: 3.6
-    env: TOXENV=py36-aiohttp22
-  - python: 3.6
-    env: TOXENV=py36-aiohttp23
   - python: 3.6
     env: TOXENV=py36-aiohttp30
   - python: 3.6

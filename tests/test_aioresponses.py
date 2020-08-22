@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import re
+from asyncio import CancelledError, TimeoutError
 from typing import Coroutine, Generator, Union
-from unittest import IsolatedAsyncioTestCase, skipIf
 from unittest.mock import patch
 
 from aiohttp import hdrs
@@ -10,7 +10,7 @@ from aiohttp import http
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 from ddt import ddt, data
-from asyncio import CancelledError, TimeoutError
+
 try:
     from aiohttp.errors import (
         ClientConnectionError,
@@ -24,30 +24,33 @@ except ImportError:
     )
     from aiohttp.http_exceptions import HttpProcessingError
 
-from aioresponses.compat import AIOHTTP_VERSION, URL
+from aioresponses.compat import (
+    AIOHTTP_VERSION, URL,
+    fail_on,
+    skipIf,
+    AsyncTestCase
+)
+
 from aioresponses import CallbackResult, aioresponses
 
 
 @ddt
-class AIOResponsesTestCase(IsolatedAsyncioTestCase):
+class AIOResponsesTestCase(AsyncTestCase):
 
-    async def asyncSetUp(self):
+    async def setup(self):
         self.url = 'http://example.com/api?foo=bar#fragment'
         self.session = ClientSession()
-        self.loop = asyncio.get_event_loop()
-        super().setUp()
 
-    async def asyncTearDown(self):
+    async def teardown(self):
         close_result = self.session.close()
         if close_result is not None:
             await close_result
-        super().tearDown()
 
     def run_async(self, coroutine: Union[Coroutine, Generator]):
         return self.loop.run_until_complete(coroutine)
 
     async def request(self, url: str):
-        return (await self.session.get(url))
+        return await self.session.get(url)
 
     @data(
         hdrs.METH_HEAD,
@@ -59,6 +62,7 @@ class AIOResponsesTestCase(IsolatedAsyncioTestCase):
         hdrs.METH_OPTIONS,
     )
     @patch('aioresponses.aioresponses.add')
+    @fail_on(unused_loop=False)
     def test_shortcut_method(self, http_method, mocked):
         with aioresponses() as m:
             getattr(m, http_method.lower())(self.url)
@@ -194,6 +198,7 @@ class AIOResponsesTestCase(IsolatedAsyncioTestCase):
 
         await foo()
 
+    @fail_on(unused_loop=False)
     def test_mocking_as_decorator_wrong_mocked_arg_name(self):
         @aioresponses(param='foo')
         def foo(bar):
@@ -310,7 +315,8 @@ class AIOResponsesTestCase(IsolatedAsyncioTestCase):
             request = m.requests[key][0]
             self.assertEqual(request.args, tuple())
             self.assertEqual(request.kwargs,
-                             {'allow_redirects': True, "data": generator_value})
+                             {'allow_redirects': True,
+                                 "data": generator_value})
 
     async def test_request_retrieval_in_case_no_response(self):
         with aioresponses() as m:
@@ -359,7 +365,9 @@ class AIOResponsesTestCase(IsolatedAsyncioTestCase):
         async def doit(params):
             # we have to hit actual url,
             # otherwise we do not test pass through option properly
-            ext_rep = (await self.session.get(URL(external_api), params=params))
+            ext_rep = await self.session.get(
+                URL(external_api), params=params
+            )
             return ext_rep
 
         with aioresponses(passthrough=[external_api]) as m:
@@ -475,7 +483,7 @@ class AIOResponsesTestCase(IsolatedAsyncioTestCase):
         self.assertEqual(request.kwargs, kwargs)
 
 
-class AIOResponsesRaiseForStatusSessionTestCase(IsolatedAsyncioTestCase):
+class AIOResponsesRaiseForStatusSessionTestCase(AsyncTestCase):
     """Test case for sessions with raise_for_status=True.
 
     This flag, introduced in aiohttp v2.0.0, automatically calls
@@ -485,17 +493,14 @@ class AIOResponsesRaiseForStatusSessionTestCase(IsolatedAsyncioTestCase):
 
     """
 
-
-    async def asyncSetUp(self):
+    async def setup(self):
         self.url = 'http://example.com/api?foo=bar#fragment'
         self.session = ClientSession(raise_for_status=True)
-        super().setUp()
 
-    async def asyncTearDown(self):
+    async def teardown(self):
         close_result = self.session.close()
         if close_result is not None:
             await close_result
-        super().tearDown()
 
     @aioresponses()
     async def test_raise_for_status(self, m):
@@ -511,22 +516,21 @@ class AIOResponsesRaiseForStatusSessionTestCase(IsolatedAsyncioTestCase):
     async def test_do_not_raise_for_status(self, m):
         m.get(self.url, status=400)
         response = await self.session.get(self.url,
-                                               raise_for_status=False)
+                                          raise_for_status=False)
 
         self.assertEqual(response.status, 400)
 
 
-class AIOResponseRedirectTest(IsolatedAsyncioTestCase):
-    async def asyncSetUp(self):
+class AIOResponseRedirectTest(AsyncTestCase):
+
+    async def setup(self):
         self.url = "http://10.1.1.1:8080/redirect"
         self.session = ClientSession()
-        super().setUp()
 
-    async def asyncTearDown(self):
+    async def teardown(self):
         close_result = self.session.close()
         if close_result is not None:
             await close_result
-        super().tearDown()
 
     @aioresponses()
     async def test_redirect_followed(self, rsps):
