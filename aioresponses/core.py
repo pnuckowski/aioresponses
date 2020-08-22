@@ -8,6 +8,7 @@ from distutils.version import StrictVersion
 from functools import wraps
 from typing import Callable, Dict, Tuple, Union, Optional, List  # noqa
 from unittest.mock import Mock, patch
+from uuid import uuid4
 
 from aiohttp import (
     ClientConnectionError,
@@ -207,7 +208,7 @@ RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
 
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
-    _matches = None  # type: List[RequestMatch]
+    _matches = None  # type: Dict[str, RequestMatch]
     _responses = None  # type: List[ClientResponse]
     requests = None  # type: Dict
 
@@ -254,7 +255,7 @@ class aioresponses(object):
 
     def start(self):
         self._responses = []
-        self._matches = []
+        self._matches = {}
         self.patcher.start()
         self.patcher.return_value = self._request_mock
 
@@ -297,7 +298,8 @@ class aioresponses(object):
             timeout: bool = False,
             reason: Optional[str] = None,
             callback: Optional[Callable] = None) -> None:
-        self._matches.append(RequestMatch(
+
+        self._matches[str(uuid4())] = (RequestMatch(
             url,
             method=method,
             status=status,
@@ -330,7 +332,7 @@ class aioresponses(object):
     ) -> Optional['ClientResponse']:
         history = []
         while True:
-            for i, matcher in enumerate(self._matches):
+            for key, matcher in self._matches.items():
                 if matcher.match(method, url):
                     response_or_exc = await matcher.build_response(
                         url, allow_redirects=allow_redirects, **kwargs
@@ -340,7 +342,7 @@ class aioresponses(object):
                 return None
 
             if matcher.repeat is False:
-                del self._matches[i]
+                del self._matches[key]
 
             if self.is_exception(response_or_exc):
                 raise response_or_exc

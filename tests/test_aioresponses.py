@@ -2,6 +2,7 @@
 import asyncio
 import re
 from asyncio import CancelledError, TimeoutError
+from random import uniform
 from typing import Coroutine, Generator, Union
 from unittest.mock import patch
 
@@ -481,6 +482,24 @@ class AIOResponsesTestCase(AsyncTestCase):
         request = mocked_requests[0]
         self.assertEqual(request.args, ())
         self.assertEqual(request.kwargs, kwargs)
+
+    async def test_possible_race_condition(self):
+        async def random_sleep_cb(url, **kwargs):
+            await asyncio.sleep(uniform(0.1, 1))
+            return CallbackResult(body='test')
+
+        with aioresponses() as mocked:
+            for i in range(20):
+                mocked.get(
+                    'http://example.org/id-{}'.format(i),
+                    callback=random_sleep_cb
+                )
+
+            tasks = [
+                self.session.get('http://example.org/id-{}'.format(i)) for
+                i in range(20)
+            ]
+            await asyncio.gather(*tasks)
 
 
 class AIOResponsesRaiseForStatusSessionTestCase(AsyncTestCase):
