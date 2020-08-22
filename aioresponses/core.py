@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import asyncio
-import json
 import copy
+import inspect
+import json
 from collections import namedtuple
 from distutils.version import StrictVersion
 from functools import wraps
 from typing import Callable, Dict, Tuple, Union, Optional, List  # noqa
 from unittest.mock import Mock, patch
-import inspect
+
 from aiohttp import (
     ClientConnectionError,
     ClientResponse,
@@ -174,7 +175,7 @@ class RequestMatch(object):
         return resp
 
     async def build_response(
-            self, url: URL, **kwargs
+        self, url: URL, **kwargs
     ) -> 'Union[ClientResponse, Exception]':
         if self.exception is not None:
             return self.exception
@@ -324,8 +325,8 @@ class aioresponses(object):
         return False
 
     async def match(
-            self, method: str, url: URL,
-            allow_redirects: bool = True, **kwargs: Dict
+        self, method: str, url: URL,
+        allow_redirects: bool = True, **kwargs: Dict
     ) -> Optional['ClientResponse']:
         history = []
         while True:
@@ -343,9 +344,8 @@ class aioresponses(object):
 
             if self.is_exception(response_or_exc):
                 raise response_or_exc
-
-            if response_or_exc.status in (
-                    301, 302, 303, 307, 308) and allow_redirects:
+            is_redirect = response_or_exc.status in (301, 302, 303, 307, 308)
+            if is_redirect and allow_redirects:
                 if hdrs.LOCATION not in response_or_exc.headers:
                     break
                 history.append(response_or_exc)
