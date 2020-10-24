@@ -45,7 +45,7 @@ if AIOHTTP_VERSION >= StrictVersion('3.0.0'):
         loop: 'Optional[asyncio.AbstractEventLoop]' = None
     ):
         protocol = ResponseHandler(loop=loop)
-        return StreamReader(protocol, loop=loop)
+        return StreamReader(protocol, limit=2 ** 16, loop=loop)
 
 else:
 
