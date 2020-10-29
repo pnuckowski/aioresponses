@@ -53,6 +53,10 @@ matrix:
   - python: 3.8
     dist: xenial
     env: TOXENV=py38-aiohttp37
+
+  - python: 3.9
+    dist: focal
+    env: TOXENV=py39-aiohttp37
 #  - python: 3.8
 #    dist: xenial
 #    env: TOXENV=py38-aiohttp-master
