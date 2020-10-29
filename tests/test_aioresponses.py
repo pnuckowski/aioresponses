@@ -25,14 +25,9 @@ except ImportError:
     )
     from aiohttp.http_exceptions import HttpProcessingError
 
-from aioresponses.compat import (
-    AIOHTTP_VERSION, URL,
-    fail_on,
-    skipIf,
-    AsyncTestCase
-)
-
+from aioresponses.compat import AIOHTTP_VERSION, URL
 from aioresponses import CallbackResult, aioresponses
+from .base import fail_on, skipIf, AsyncTestCase
 
 
 @ddt
