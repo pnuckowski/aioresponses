@@ -382,7 +382,7 @@ class aioresponses(object):
         self.requests.setdefault(key, [])
         try:
             kwargs_copy = copy.deepcopy(kwargs)
-        except TypeError:
+        except (TypeError, ValueError):
             # Handle the fact that some values cannot be deep copied
             kwargs_copy = kwargs
         self.requests[key].append(RequestCall(args, kwargs_copy))
