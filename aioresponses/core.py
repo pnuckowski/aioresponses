@@ -27,7 +27,10 @@ from .compat import (
     normalize_url,
 )
 if AIOHTTP_VERSION >= StrictVersion('3.1.0'):
-    from aiohttp import RequestInfo
+    try:
+        from aiohttp import RequestInfo
+    except ImportError:
+        RequestInfo = Mock()
 
 
 class CallbackResult:
