@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import asyncio  # noqa: F401
 import sys
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple, Union  # noqa
 from urllib.parse import parse_qsl, urlencode
 
@@ -14,9 +14,9 @@ if sys.version_info < (3, 7):
 else:
     from re import Pattern
 
-AIOHTTP_VERSION = StrictVersion(aiohttp_version)
+AIOHTTP_VERSION = LooseVersion(aiohttp_version)
 
-if AIOHTTP_VERSION >= StrictVersion('3.0.0'):
+if AIOHTTP_VERSION >= LooseVersion('3.0.0'):
     from aiohttp.client_proto import ResponseHandler
 
 
