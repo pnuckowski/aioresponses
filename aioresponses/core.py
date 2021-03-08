@@ -65,7 +65,8 @@ class RequestMatch(object):
                  timeout: bool = False,
                  repeat: bool = False,
                  reason: Optional[str] = None,
-                 callback: Optional[Callable] = None):
+                 callback: Optional[Callable] = None,
+                 delay_seconds: float = None):
         if isinstance(url, Pattern):
             self.url_or_pattern = url
             self.match_func = self.match_regexp
@@ -84,6 +85,7 @@ class RequestMatch(object):
         self.response_class = response_class
         self.repeat = repeat
         self.reason = reason
+        self.delay_seconds = delay_seconds
         if self.reason is None:
             try:
                 self.reason = http.RESPONSES[self.status][0]
@@ -200,6 +202,10 @@ class RequestMatch(object):
             headers=result.headers,
             response_class=result.response_class,
             reason=result.reason)
+
+        if self.delay_seconds:
+            await asyncio.sleep(self.delay_seconds)
+
         return resp
 
 
@@ -297,7 +303,8 @@ class aioresponses(object):
             repeat: bool = False,
             timeout: bool = False,
             reason: Optional[str] = None,
-            callback: Optional[Callable] = None) -> None:
+            callback: Optional[Callable] = None,
+            delay_seconds: float = None) -> None:
 
         self._matches[str(uuid4())] = (RequestMatch(
             url,
@@ -313,6 +320,7 @@ class aioresponses(object):
             timeout=timeout,
             reason=reason,
             callback=callback,
+            delay_seconds=delay_seconds
         ))
 
     @staticmethod

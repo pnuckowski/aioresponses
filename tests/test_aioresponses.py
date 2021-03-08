@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import re
+from time import time
 from asyncio import CancelledError, TimeoutError
 from random import uniform
 from typing import Coroutine, Generator, Union
@@ -164,6 +165,16 @@ class AIOResponsesTestCase(AsyncTestCase):
         self.assertEqual(content, b'Te')
         content = await resp.content.read(2)
         self.assertEqual(content, b'st')
+
+    @aioresponses()
+    async def test_delay_seconds(self, m):
+        delay_seconds = 1
+        m.get(self.url, body='Test', delay_seconds=delay_seconds)
+        now = time()
+        print(now)
+        await self.session.get(self.url)
+        print(time() - now)
+        assert time() - now >= delay_seconds
 
     async def test_mocking_as_context_manager(self):
         with aioresponses() as aiomock:
