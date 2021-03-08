@@ -11,6 +11,7 @@ from aiohttp import http
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 from ddt import ddt, data
+from pkg_resources import parse_version
 
 try:
     from aiohttp.errors import (
@@ -117,7 +118,7 @@ class AIOResponsesTestCase(AsyncTestCase):
         self.assertEqual(cm.exception.message, http.RESPONSES[400][0])
 
     @aioresponses()
-    @skipIf(condition=AIOHTTP_VERSION < '3.4.0',
+    @skipIf(condition=AIOHTTP_VERSION < parse_version('3.4.0'),
             reason='aiohttp<3.4.0 does not support raise_for_status '
                    'arguments for requests')
     async def test_request_raise_for_status(self, m):
@@ -524,7 +525,7 @@ class AIOResponsesRaiseForStatusSessionTestCase(AsyncTestCase):
         self.assertEqual(cm.exception.message, http.RESPONSES[400][0])
 
     @aioresponses()
-    @skipIf(condition=AIOHTTP_VERSION < '3.4.0',
+    @skipIf(condition=AIOHTTP_VERSION < parse_version('3.4.0'),
             reason='aiohttp<3.4.0 does not support raise_for_status '
                    'arguments for requests')
     async def test_do_not_raise_for_status(self, m):
@@ -602,7 +603,7 @@ class AIOResponseRedirectTest(AsyncTestCase):
         self.assertEqual(str(response.url), self.url)
 
     @aioresponses()
-    @skipIf(condition=AIOHTTP_VERSION < '3.1.0',
+    @skipIf(condition=AIOHTTP_VERSION < parse_version('3.1.0'),
             reason='aiohttp<3.1.0 does not add request info on response')
     async def test_request_info(self, rsps):
         rsps.get(self.url, status=200)
@@ -614,7 +615,7 @@ class AIOResponseRedirectTest(AsyncTestCase):
         assert request_info.headers == {}
 
     @aioresponses()
-    @skipIf(condition=AIOHTTP_VERSION < '3.1.0',
+    @skipIf(condition=AIOHTTP_VERSION < parse_version('3.1.0'),
             reason='aiohttp<3.1.0 does not add request info on response')
     async def test_request_info_with_original_request_headers(self, rsps):
         headers = {"Authorization": "Bearer access-token"}
