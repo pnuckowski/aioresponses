@@ -171,9 +171,7 @@ class AIOResponsesTestCase(AsyncTestCase):
         delay_seconds = 1
         m.get(self.url, body='Test', delay_seconds=delay_seconds)
         now = time()
-        print(now)
         await self.session.get(self.url)
-        print(time() - now)
         assert time() - now >= delay_seconds
 
     async def test_mocking_as_context_manager(self):
