@@ -225,6 +225,26 @@ for convenience use *payload* argument to mock out json response. Example below.
         with aioresponses() as m:
             yield m
 
+**a custom delay in seconds can be passed to make aioresponses more realistically mimic a return call to the server**
+
+.. code:: python
+
+    import asyncio
+    import aiohttp
+    from aioresponses import aioresponses
+
+    @aioresponses()
+    def test_delay(m):
+        loop = asyncio.get_event_loop()
+        session = aiohttp.ClientSession()
+        m.get(
+            'http://example.com',
+            delay_seconds=0.3
+        )
+
+        resp = loop.run_until_complete(session.get('http://example.com'))
+        # Takes 300 ms to complete
+
 
 Features
 --------
