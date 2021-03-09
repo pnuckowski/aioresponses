@@ -4,7 +4,6 @@ import copy
 import inspect
 import json
 from collections import namedtuple
-from distutils.version import StrictVersion
 from functools import wraps
 from typing import Callable, Dict, Tuple, Union, Optional, List  # noqa
 from unittest.mock import Mock, patch
@@ -19,6 +18,7 @@ from aiohttp import (
 )
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict, CIMultiDictProxy
+from pkg_resources import parse_version
 
 from .compat import (
     AIOHTTP_VERSION,
@@ -132,7 +132,7 @@ class RequestMatch(object):
         if request_headers is None:
             request_headers = {}
         kwargs = {}
-        if AIOHTTP_VERSION >= StrictVersion('3.1.0'):
+        if AIOHTTP_VERSION >= parse_version('3.1.0'):
             loop = Mock()
             loop.get_debug = Mock()
             loop.get_debug.return_value = True
@@ -144,7 +144,7 @@ class RequestMatch(object):
             kwargs['writer'] = Mock()
             kwargs['continue100'] = None
             kwargs['timer'] = TimerNoop()
-            if AIOHTTP_VERSION < StrictVersion('3.3.0'):
+            if AIOHTTP_VERSION < parse_version('3.3.0'):
                 kwargs['auto_decompress'] = True
             kwargs['traces'] = []
             kwargs['loop'] = loop
@@ -161,7 +161,7 @@ class RequestMatch(object):
         for hdr in _headers.getall(hdrs.SET_COOKIE, ()):
             resp.cookies.load(hdr)
 
-        if AIOHTTP_VERSION >= StrictVersion('3.3.0'):
+        if AIOHTTP_VERSION >= parse_version('3.3.0'):
             # Reified attributes
             resp._headers = _headers
             resp._raw_headers = raw_headers
