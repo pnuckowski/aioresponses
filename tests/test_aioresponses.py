@@ -626,3 +626,21 @@ class AIOResponseRedirectTest(AsyncTestCase):
         request_info = response.request_info
         assert str(request_info.url) == self.url
         assert request_info.headers == headers
+
+    @aioresponses()
+    async def test_relative_url_redirect_followed(self, rsps):
+        base_url = "https://httpbin.org"
+        url = f"{base_url}/foo/bar"
+        rsps.get(
+            url,
+            status=307,
+            headers={"Location": "../baz"},
+        )
+        rsps.get(f"{base_url}/baz")
+
+        response = await self.session.get(url, allow_redirects=True)
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(str(response.url), f"{base_url}/baz")
+        self.assertEqual(len(response.history), 1)
+        self.assertEqual(str(response.history[0].url), url)
