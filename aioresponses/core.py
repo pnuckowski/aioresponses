@@ -178,9 +178,6 @@ class RequestMatch(object):
     async def build_response(
         self, url: URL, **kwargs
     ) -> 'Union[ClientResponse, Exception]':
-        if self.exception is not None:
-            return self.exception
-
         if callable(self.callback):
             if asyncio.iscoroutinefunction(self.callback):
                 result = await self.callback(url, **kwargs)
@@ -188,6 +185,10 @@ class RequestMatch(object):
                 result = self.callback(url, **kwargs)
         else:
             result = None
+
+        if self.exception is not None:
+            return self.exception
+
         result = self if result is None else result
         resp = self._build_response(
             url=url,
