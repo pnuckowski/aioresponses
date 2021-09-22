@@ -251,6 +251,15 @@ class AIOResponsesTestCase(AsyncTestCase):
             with self.assertRaises(HttpProcessingError):
                 await self.session.get(url)
 
+            callback_called = asyncio.Event()
+            url = 'http://example.com/HttpProcessingError'
+            aiomock.get(url, exception=HttpProcessingError(message='foo'),
+                        callback=lambda *_, **__: callback_called.set())
+            with self.assertRaises(HttpProcessingError):
+                await self.session.get(url)
+            
+            await callback_called.wait()
+
     async def test_multiple_requests(self):
         """Ensure that requests are saved the way they would have been sent."""
         with aioresponses() as m:
