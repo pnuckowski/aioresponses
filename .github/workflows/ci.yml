@@ -14,6 +14,7 @@ jobs:
       max-parallel: 4
       matrix:
         python-version: [3.8]
+        aiohttp-version: [37]
 
     steps:
     - uses: actions/checkout@v2
@@ -27,4 +28,4 @@ jobs:
         pip install tox
     - name: Run Tests
       run: |
-        tox -e py38-aiohttp37
+        tox -e ${{ matrix.python-version }}-aiohttp${{ matrix.aiohttp-version }}
