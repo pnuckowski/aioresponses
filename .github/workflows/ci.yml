@@ -13,8 +13,8 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.7,3.8]
-        aiohttp-version: [37]
+        python-version: [3.7, 3.8]
+        aiohttp-version: [36, 37]
 
     steps:
     - uses: actions/checkout@v2
