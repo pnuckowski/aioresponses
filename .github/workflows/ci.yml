@@ -28,4 +28,4 @@ jobs:
         pip install tox
     - name: Run Tests
       run: |
-        tox -e ${{ matrix.python-version }}-aiohttp${{ matrix.aiohttp-version }}
+        tox -e py${{ matrix.python-version }}-aiohttp${{ matrix.aiohttp-version }}
