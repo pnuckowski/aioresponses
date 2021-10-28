@@ -27,12 +27,8 @@ from .compat import (
     stream_reader_factory,
     merge_params,
     normalize_url,
+    RequestInfo,
 )
-if AIOHTTP_VERSION >= StrictVersion('3.1.0'):
-    try:
-        from aiohttp import RequestInfo
-    except ImportError:
-        RequestInfo = Mock()
 
 
 class CallbackResult:
