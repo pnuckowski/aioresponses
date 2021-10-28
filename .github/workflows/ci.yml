@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.actor }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    env:
+      PYTEST_ADDOPTS: "--cov --cov-report=xml"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: 3.6
+            aiohttp-version: aiohttp30
+          - python-version: 3.6
+            aiohttp-version: aiohttp31
+          - python-version: 3.6
+            aiohttp-version: aiohttp32
+          - python-version: 3.6
+            aiohttp-version: aiohttp33
+          - python-version: 3.6
+            aiohttp-version: aiohttp34
+          - python-version: 3.6
+            aiohttp-version: aiohttp35
+          - python-version: 3.6
+            aiohttp-version: aiohttp36
+          - python-version: 3.6
+            aiohttp-version: aiohttp37
+
+          - python-version: 3.7
+            aiohttp-version: aiohttp33
+          - python-version: 3.7
+            aiohttp-version: aiohttp34
+          - python-version: 3.7
+            aiohttp-version: aiohttp35
+          - python-version: 3.7
+            aiohttp-version: aiohttp36
+          - python-version: 3.7
+            aiohttp-version: aiohttp37
+
+          - python-version: 3.8
+            aiohttp-version: aiohttp33
+          - python-version: 3.8
+            aiohttp-version: aiohttp34
+          - python-version: 3.8
+            aiohttp-version: aiohttp35
+          - python-version: 3.8
+            aiohttp-version: aiohttp36
+          - python-version: 3.8
+            aiohttp-version: aiohttp37
+
+          - python-version: 3.9
+            aiohttp-version: aiohttp35
+          - python-version: 3.9
+            aiohttp-version: aiohttp36
+          - python-version: 3.9
+            aiohttp-version: aiohttp37
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox
+    - name: Run Tests
+      run: |
+        tox -e py${{ matrix.python-version }}-${{ matrix.aiohttp-version }}
+    - uses: codecov/codecov-action@v2
+      with:
+        file: coverage.xml
