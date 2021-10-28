@@ -53,7 +53,9 @@ except ImportError:
     class RequestInfo(object):
         __slots__ = ('url', 'method', 'headers', 'real_url')
 
-        def __init__(self, url: URL, method: str, headers: Dict, real_url: str):
+        def __init__(
+            self, url: URL, method: str, headers: Dict, real_url: str
+        ):
             self.url = url
             self.method = method
             self.headers = headers
