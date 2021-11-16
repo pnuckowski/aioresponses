@@ -166,6 +166,26 @@ class AIOResponsesTestCase(AsyncTestCase):
         content = await resp.content.read(2)
         self.assertEqual(content, b'st')
 
+    @aioresponses()
+    async def test_binary_body(self, m):
+        body = b'Invalid utf-8: \x95\x00\x85'
+        m.get(self.url, body=body)
+        resp = await self.session.get(self.url)
+        content = await resp.read()
+        self.assertEqual(content, body)
+
+    @aioresponses()
+    async def test_binary_body_via_callback(self, m):
+        body = b'\x00\x01\x02\x80\x81\x82\x83\x84\x85'
+
+        def callback(url, **kwargs):
+            return CallbackResult(body=body)
+
+        m.get(self.url, callback=callback)
+        resp = await self.session.get(self.url)
+        content = await resp.read()
+        self.assertEqual(content, body)
+
     async def test_mocking_as_context_manager(self):
         with aioresponses() as aiomock:
             aiomock.add(self.url, payload={'foo': 'bar'})
