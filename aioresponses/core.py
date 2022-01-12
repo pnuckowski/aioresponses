@@ -5,7 +5,18 @@ import inspect
 import json
 from collections import namedtuple
 from functools import wraps
-from typing import Callable, Dict, Tuple, Union, Optional, List  # noqa
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -31,15 +42,18 @@ from .compat import (
 )
 
 
+_FuncT = TypeVar("_FuncT", bound=Callable[..., Any])
+
+
 class CallbackResult:
 
     def __init__(self, method: str = hdrs.METH_GET,
                  status: int = 200,
                  body: Union[str, bytes] = '',
                  content_type: str = 'application/json',
-                 payload: Dict = None,
-                 headers: Dict = None,
-                 response_class: 'ClientResponse' = None,
+                 payload: Optional[Dict] = None,
+                 headers: Optional[Dict] = None,
+                 response_class: Optional[Type[ClientResponse]] = None,
                  reason: Optional[str] = None):
         self.method = method
         self.status = status
@@ -58,11 +72,11 @@ class RequestMatch(object):
                  method: str = hdrs.METH_GET,
                  status: int = 200,
                  body: Union[str, bytes] = '',
-                 payload: Dict = None,
-                 exception: 'Exception' = None,
-                 headers: Dict = None,
+                 payload: Optional[Dict] = None,
+                 exception: Optional[Exception] = None,
+                 headers: Optional[Dict] = None,
                  content_type: str = 'application/json',
-                 response_class: 'ClientResponse' = None,
+                 response_class: Optional[Type[ClientResponse]] = None,
                  timeout: bool = False,
                  repeat: bool = False,
                  reason: Optional[str] = None,
@@ -116,13 +130,13 @@ class RequestMatch(object):
 
     def _build_response(self, url: 'Union[URL, str]',
                         method: str = hdrs.METH_GET,
-                        request_headers: Dict = None,
+                        request_headers: Optional[Dict] = None,
                         status: int = 200,
                         body: Union[str, bytes] = '',
                         content_type: str = 'application/json',
-                        payload: Dict = None,
-                        headers: Dict = None,
-                        response_class: 'ClientResponse' = None,
+                        payload: Optional[Dict] = None,
+                        headers: Optional[Dict] = None,
+                        response_class: Optional[Type[ClientResponse]] = None,
                         reason: Optional[str] = None) -> ClientResponse:
         if response_class is None:
             response_class = ClientResponse
@@ -132,7 +146,7 @@ class RequestMatch(object):
             body = str.encode(body)
         if request_headers is None:
             request_headers = {}
-        kwargs = {}
+        kwargs = {}  # type: Dict[str, Any]
         if AIOHTTP_VERSION >= parse_version('3.1.0'):
             loop = Mock()
             loop.get_debug = Mock()
@@ -177,7 +191,7 @@ class RequestMatch(object):
         return resp
 
     async def build_response(
-        self, url: URL, **kwargs
+        self, url: URL, **kwargs: Any
     ) -> 'Union[ClientResponse, Exception]':
         if callable(self.callback):
             if asyncio.iscoroutinefunction(self.callback):
@@ -214,7 +228,7 @@ class aioresponses(object):
     _responses = None  # type: List[ClientResponse]
     requests = None  # type: Dict
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         self._param = kwargs.pop('param', None)
         self._passthrough = kwargs.pop('passthrough', [])
         self.patcher = patch('aiohttp.client.ClientSession._request',
@@ -226,10 +240,10 @@ class aioresponses(object):
         self.start()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.stop()
 
-    def __call__(self, f):
+    def __call__(self, f: _FuncT) -> _FuncT:
         def _pack_arguments(ctx, *args, **kwargs) -> Tuple[Tuple, Dict]:
             if self._param:
                 kwargs[self._param] = ctx
@@ -249,13 +263,13 @@ class aioresponses(object):
                 with self as ctx:
                     args, kwargs = _pack_arguments(ctx, *args, **kwargs)
                     return f(*args, **kwargs)
-        return wrapped
+        return cast(_FuncT, wrapped)
 
-    def clear(self):
+    def clear(self) -> None:
         self._responses.clear()
         self._matches.clear()
 
-    def start(self):
+    def start(self) -> None:
         self._responses = []
         self._matches = {}
         self.patcher.start()
@@ -267,35 +281,35 @@ class aioresponses(object):
         self.patcher.stop()
         self.clear()
 
-    def head(self, url: 'Union[URL, str, Pattern]', **kwargs):
+    def head(self, url: 'Union[URL, str, Pattern]', **kwargs: Any) -> None:
         self.add(url, method=hdrs.METH_HEAD, **kwargs)
 
-    def get(self, url: 'Union[URL, str, Pattern]', **kwargs):
+    def get(self, url: 'Union[URL, str, Pattern]', **kwargs: Any) -> None:
         self.add(url, method=hdrs.METH_GET, **kwargs)
 
-    def post(self, url: 'Union[URL, str, Pattern]', **kwargs):
+    def post(self, url: 'Union[URL, str, Pattern]', **kwargs: Any) -> None:
         self.add(url, method=hdrs.METH_POST, **kwargs)
 
-    def put(self, url: 'Union[URL, str, Pattern]', **kwargs):
+    def put(self, url: 'Union[URL, str, Pattern]', **kwargs: Any) -> None:
         self.add(url, method=hdrs.METH_PUT, **kwargs)
 
-    def patch(self, url: 'Union[URL, str, Pattern]', **kwargs):
+    def patch(self, url: 'Union[URL, str, Pattern]', **kwargs: Any) -> None:
         self.add(url, method=hdrs.METH_PATCH, **kwargs)
 
-    def delete(self, url: 'Union[URL, str, Pattern]', **kwargs):
+    def delete(self, url: 'Union[URL, str, Pattern]', **kwargs: Any) -> None:
         self.add(url, method=hdrs.METH_DELETE, **kwargs)
 
-    def options(self, url: 'Union[URL, str, Pattern]', **kwargs):
+    def options(self, url: 'Union[URL, str, Pattern]', **kwargs: Any) -> None:
         self.add(url, method=hdrs.METH_OPTIONS, **kwargs)
 
     def add(self, url: 'Union[URL, str, Pattern]', method: str = hdrs.METH_GET,
             status: int = 200,
             body: Union[str, bytes] = '',
-            exception: 'Exception' = None,
+            exception: Optional[Exception] = None,
             content_type: str = 'application/json',
-            payload: Dict = None,
-            headers: Dict = None,
-            response_class: 'ClientResponse' = None,
+            payload: Optional[Dict] = None,
+            headers: Optional[Dict] = None,
+            response_class: Optional[Type[ClientResponse]] = None,
             repeat: bool = False,
             timeout: bool = False,
             reason: Optional[str] = None,
@@ -329,8 +343,10 @@ class aioresponses(object):
         return False
 
     async def match(
-        self, method: str, url: URL,
-        allow_redirects: bool = True, **kwargs: Dict
+        self, method: str,
+        url: URL,
+        allow_redirects: bool = True,
+        **kwargs: Any
     ) -> Optional['ClientResponse']:
         history = []
         while True:
@@ -366,7 +382,7 @@ class aioresponses(object):
     async def _request_mock(self, orig_self: ClientSession,
                             method: str, url: 'Union[URL, str]',
                             *args: Tuple,
-                            **kwargs: Dict) -> 'ClientResponse':
+                            **kwargs: Any) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
         if orig_self.closed:
             raise RuntimeError('Session is closed')
