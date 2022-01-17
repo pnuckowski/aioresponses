@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import asyncio  # noqa: F401
 import sys
-from typing import Dict, Optional, Tuple, Union  # noqa
+from typing import Dict, Optional, Union  # noqa
 from urllib.parse import parse_qsl, urlencode
 
 from aiohttp import __version__ as aiohttp_version, StreamReader
@@ -32,7 +32,10 @@ else:
         return StreamReader()
 
 
-def merge_params(url: 'Union[URL, str]', params: 'Dict' = None) -> 'URL':
+def merge_params(
+    url: 'Union[URL, str]',
+    params: Optional[Dict] = None
+) -> 'URL':
     url = URL(url)
     if params:
         query_params = MultiDict(url.query)
