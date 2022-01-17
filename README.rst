@@ -155,6 +155,41 @@ for convenience use *payload* argument to mock out json response. Example below.
 
         assert resp.status == 200
 
+**allows to make redirects responses**
+
+.. code:: python
+
+    import asyncio
+    import aiohttp
+    from aioresponses import aioresponses
+
+    @aioresponses()
+    def test_redirect_example(m):
+        loop = asyncio.get_event_loop()
+        session = aiohttp.ClientSession()
+
+        # absolute urls are supported
+        m.get(
+            'http://example.com/',
+            headers={'Location': 'http://another.com/'},
+            status=307
+        )
+
+        resp = loop.run_until_complete(
+            session.get('http://example.com/', allow_redirects=True)
+        )
+        assert resp.url == 'http://another.com/'
+
+        # and also relative
+        m.get(
+            'http://example.com/',
+            headers={'Location': '/test'},
+            status=307
+        )
+        resp = loop.run_until_complete(
+            session.get('http://example.com/', allow_redirects=True)
+        )
+        assert resp.url == 'http://example.com/test'
 
 **allows to passthrough to a specified list of servers**
 

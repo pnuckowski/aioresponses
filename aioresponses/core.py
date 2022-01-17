@@ -353,7 +353,11 @@ class aioresponses(object):
                 if hdrs.LOCATION not in response_or_exc.headers:
                     break
                 history.append(response_or_exc)
-                url = URL(response_or_exc.headers[hdrs.LOCATION])
+                redirect_url = URL(response_or_exc.headers[hdrs.LOCATION])
+                if redirect_url.is_absolute():
+                    url = redirect_url
+                else:
+                    url = url.join(redirect_url)
                 method = 'get'
                 continue
             else:
