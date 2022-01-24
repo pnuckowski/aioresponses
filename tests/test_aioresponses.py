@@ -143,12 +143,28 @@ class AIOResponsesTestCase(AsyncTestCase):
         )
         self.assertIsInstance(response, ClientResponse)
         self.assertEqual(response.status, 200)
+        self.assertEqual(len(m.requests), 2)
+        with self.assertRaises(AssertionError):
+            m.assert_called_once()
 
     @aioresponses()
     def test_method_dont_match(self, m):
         m.get(self.url)
         with self.assertRaises(ClientConnectionError):
             self.run_async(self.session.post(self.url))
+
+    @aioresponses()
+    def test_post_with_data(self, m: aioresponses):
+        payload = {"spam": "eggs"}
+        m.post(
+            self.url,
+            payload=payload,
+            headers=dict(connection='keep-alive'),
+        )
+        response = self.run_async(self.session.post(self.url))
+        self.assertIsInstance(response, ClientResponse)
+        self.assertEqual(response.status, 200)
+        m.assert_called_once_with(self.url, method='POST')
 
     @aioresponses()
     async def test_streaming(self, m):
@@ -491,6 +507,60 @@ class AIOResponsesTestCase(AsyncTestCase):
         response = future.result()
         data = self.run_async(response.read())
         assert data == body
+
+    @aioresponses()
+    def test_assert_not_called(self, m: aioresponses):
+        m.get(self.url)
+        m.assert_not_called()
+        self.run_async(self.session.get(self.url))
+        with self.assertRaises(AssertionError):
+            m.assert_not_called()
+
+    @aioresponses()
+    def test_assert_called(self, m: aioresponses):
+        m.get(self.url)
+        with self.assertRaises(AssertionError):
+            m.assert_called()
+        self.run_async(self.session.get(self.url))
+
+        m.assert_called_once()
+        m.assert_called_once_with(self.url)
+        m.assert_called_with(self.url)
+        with self.assertRaises(AssertionError):
+            m.assert_not_called()
+
+        with self.assertRaises(AssertionError):
+            m.assert_called_with("http://foo.bar")
+
+    @aioresponses()
+    async def test_assert_called_twice(self, m: aioresponses):
+        m.get(self.url, repeat=True)
+        m.assert_not_called()
+        await self.session.get(self.url)
+        await self.session.get(self.url)
+        with self.assertRaises(AssertionError):
+            m.assert_called_once()
+
+    @aioresponses()
+    async def test_assert_any_call(self, m: aioresponses):
+        http_bin_url = "http://httpbin.org"
+        m.get(self.url)
+        m.get(http_bin_url)
+        await self.session.get(self.url)
+        response = await self.session.get(http_bin_url)
+        self.assertEqual(response.status, 200)
+        m.assert_any_call(self.url)
+        m.assert_any_call(http_bin_url)
+
+    @aioresponses()
+    async def test_assert_any_call_not_called(self, m: aioresponses):
+        http_bin_url = "http://httpbin.org"
+        m.get(self.url)
+        response = await self.session.get(self.url)
+        self.assertEqual(response.status, 200)
+        m.assert_any_call(self.url)
+        with self.assertRaises(AssertionError):
+            m.assert_any_call(http_bin_url)
 
     @aioresponses()
     async def test_exception_requests_are_tracked(self, mocked):

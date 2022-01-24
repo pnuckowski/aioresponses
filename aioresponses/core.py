@@ -331,6 +331,95 @@ class aioresponses(object):
             callback=callback,
         ))
 
+    def _format_call_signature(self, *args, **kwargs):
+        message = '%s(%%s)' % self.__class__.__name__ or 'mock'
+        formatted_args = ''
+        args_string = ', '.join([repr(arg) for arg in args])
+        kwargs_string = ', '.join([
+            '%s=%r' % (key, value) for key, value in kwargs.items()
+        ])
+        if args_string:
+            formatted_args = args_string
+        if kwargs_string:
+            if formatted_args:
+                formatted_args += ', '
+            formatted_args += kwargs_string
+
+        return message % formatted_args
+
+    def assert_not_called(self):
+        """assert that the mock was never called.
+        """
+        if len(self.requests) != 0:
+            msg = ("Expected '%s' to not have been called. Called %s times."
+                   % (self.__class__.__name__,
+                      len(self._responses)))
+            raise AssertionError(msg)
+
+    def assert_called(self):
+        """assert that the mock was called at least once.
+        """
+        if len(self.requests) == 0:
+            msg = ("Expected '%s' to have been called."
+                   % (self.__class__.__name__,))
+            raise AssertionError(msg)
+
+    def assert_called_once(self):
+        """assert that the mock was called only once.
+        """
+        if not len(self.requests) == 1 or \
+                not len(list(self.requests.values())[0]) == 1:
+            msg = ("Expected '%s' to have been called once. Called %s times."
+                   % (self.__class__.__name__,
+                      len(self.requests)))
+
+            raise AssertionError(msg)
+
+    def assert_called_with(self, url, method='GET', *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        url = normalize_url(merge_params(url, kwargs.get('params')))
+        method = method.upper()
+        key = (method, url)
+        try:
+            self.requests[key]
+            # TODO assert args were in calls
+        except KeyError:
+            expected_string = self._format_call_signature(
+                url, method=method, *args, **kwargs
+            )
+            raise AssertionError(
+                '%s call not found' % expected_string
+            )
+
+    def assert_any_call(self, url, method='GET', *args, **kwargs):
+        """assert the mock has been called with the specified arguments.
+        The assert passes if the mock has *ever* been called, unlike
+        `assert_called_with` and `assert_called_once_with` that only pass if
+        the call is the most recent one."""
+        url = normalize_url(merge_params(url, kwargs.get('params')))
+        method = method.upper()
+        key = (method, url)
+
+        try:
+            self.requests[key]
+        except KeyError:
+            expected_string = self._format_call_signature(
+                url, method=method, *args, **kwargs
+            )
+            raise AssertionError(
+                '%s call not found' % expected_string
+            )
+
+    def assert_called_once_with(self, *args, **kwargs):
+        """assert that the mock was called once with the specified arguments.
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the only call to the mock."""
+        self.assert_called_once()
+        self.assert_called_with(*args, **kwargs)
+
     @staticmethod
     def is_exception(resp_or_exc: Union[ClientResponse, Exception]) -> bool:
         if inspect.isclass(resp_or_exc):
