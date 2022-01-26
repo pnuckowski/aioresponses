@@ -331,7 +331,7 @@ class aioresponses(object):
             callback=callback,
         ))
 
-    def _format_call_signature(self, *args, **kwargs):
+    def _format_call_signature(self, *args, **kwargs) -> str:
         message = '%s(%%s)' % self.__class__.__name__ or 'mock'
         formatted_args = ''
         args_string = ', '.join([repr(arg) for arg in args])
@@ -367,15 +367,20 @@ class aioresponses(object):
     def assert_called_once(self):
         """assert that the mock was called only once.
         """
-        if not len(self.requests) == 1 or \
-                not len(list(self.requests.values())[0]) == 1:
+        call_count = len(self.requests)
+        if call_count == 1:
+            call_count = len(list(self.requests.values())[0])
+        if not call_count == 1:
             msg = ("Expected '%s' to have been called once. Called %s times."
                    % (self.__class__.__name__,
-                      len(self.requests)))
+                      call_count))
 
             raise AssertionError(msg)
 
-    def assert_called_with(self, url, method='GET', *args, **kwargs):
+    def assert_called_with(self, url: 'Union[URL, str, Pattern]',
+                           method: str = hdrs.METH_GET,
+                           *args: Any,
+                           **kwargs: Any):
         """assert that the last call was made with the specified arguments.
 
         Raises an AssertionError if the args and keyword args passed in are
@@ -384,8 +389,7 @@ class aioresponses(object):
         method = method.upper()
         key = (method, url)
         try:
-            self.requests[key]
-            # TODO assert args were in calls
+            expected = self.requests[key][-1]
         except KeyError:
             expected_string = self._format_call_signature(
                 url, method=method, *args, **kwargs
@@ -393,8 +397,22 @@ class aioresponses(object):
             raise AssertionError(
                 '%s call not found' % expected_string
             )
+        actual = self._build_request_call(method, *args, **kwargs)
+        if not expected == actual:
+            expected_string = self._format_call_signature(
+                expected,
+            )
+            actual_string = self._format_call_signature(
+                actual
+            )
+            raise AssertionError(
+                '%s != %s' % (expected_string, actual_string)
+            )
 
-    def assert_any_call(self, url, method='GET', *args, **kwargs):
+    def assert_any_call(self, url: 'Union[URL, str, Pattern]',
+                        method: str = hdrs.METH_GET,
+                        *args: Any,
+                        **kwargs: Any):
         """assert the mock has been called with the specified arguments.
         The assert passes if the mock has *ever* been called, unlike
         `assert_called_with` and `assert_called_once_with` that only pass if
@@ -413,7 +431,7 @@ class aioresponses(object):
                 '%s call not found' % expected_string
             )
 
-    def assert_called_once_with(self, *args, **kwargs):
+    def assert_called_once_with(self, *args: Any, **kwargs: Any):
         """assert that the mock was called once with the specified arguments.
         Raises an AssertionError if the args and keyword args passed in are
         different to the only call to the mock."""
@@ -491,12 +509,8 @@ class aioresponses(object):
 
         key = (method, url)
         self.requests.setdefault(key, [])
-        try:
-            kwargs_copy = copy.deepcopy(kwargs)
-        except (TypeError, ValueError):
-            # Handle the fact that some values cannot be deep copied
-            kwargs_copy = kwargs
-        self.requests[key].append(RequestCall(args, kwargs_copy))
+        request_call = self._build_request_call(method, *args, **kwargs)
+        self.requests[key].append(request_call)
 
         response = await self.match(method, url, **kwargs)
 
@@ -520,3 +534,19 @@ class aioresponses(object):
             response.raise_for_status()
 
         return response
+
+    def _build_request_call(self, method: str = hdrs.METH_GET,
+                            *args: Any,
+                            allow_redirects: bool = True,
+                            **kwargs: Any):
+        """Return request call."""
+        kwargs.setdefault('allow_redirects', allow_redirects)
+        if method == 'POST':
+            kwargs.setdefault('data', None)
+
+        try:
+            kwargs_copy = copy.deepcopy(kwargs)
+        except (TypeError, ValueError):
+            # Handle the fact that some values cannot be deep copied
+            kwargs_copy = kwargs
+        return RequestCall(args, kwargs_copy)

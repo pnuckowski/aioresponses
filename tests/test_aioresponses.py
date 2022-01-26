@@ -155,16 +155,56 @@ class AIOResponsesTestCase(AsyncTestCase):
 
     @aioresponses()
     def test_post_with_data(self, m: aioresponses):
-        payload = {"spam": "eggs"}
+        body = {'foo': 'bar'}
+        payload = {'spam': 'eggs'}
+        user_agent = {'User-Agent': 'aioresponses'}
         m.post(
             self.url,
             payload=payload,
             headers=dict(connection='keep-alive'),
+            body=body,
         )
-        response = self.run_async(self.session.post(self.url))
+        response = self.run_async(
+            self.session.post(
+                self.url,
+                data=payload,
+                headers=user_agent
+            )
+        )
         self.assertIsInstance(response, ClientResponse)
         self.assertEqual(response.status, 200)
-        m.assert_called_once_with(self.url, method='POST')
+        response_data = self.run_async(response.json())
+        self.assertEqual(response_data, payload)
+        m.assert_called_once_with(
+            self.url,
+            method='POST',
+            data=payload,
+            headers={'User-Agent': 'aioresponses'}
+        )
+        # Wrong data
+        with self.assertRaises(AssertionError):
+            m.assert_called_once_with(
+                self.url,
+                method='POST',
+                data=body,
+                headers={'User-Agent': 'aioresponses'}
+            )
+        # Wrong url
+        with self.assertRaises(AssertionError):
+            m.assert_called_once_with(
+                'http://httpbin.org/',
+                method='POST',
+                data=payload,
+                headers={'User-Agent': 'aioresponses'}
+            )
+        # Wrong headers
+        with self.assertRaises(AssertionError):
+            m.assert_called_once_with(
+                self.url,
+                method='POST',
+                data=payload,
+                headers={'User-Agent': 'aiorequest'}
+            )
 
     @aioresponses()
     async def test_streaming(self, m):
