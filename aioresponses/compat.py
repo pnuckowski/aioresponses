@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import asyncio  # noqa: F401
 import sys
-from typing import Dict, Optional, Union  # noqa
+from typing import Dict, Optional, Union, Callable  # noqa
 from urllib.parse import parse_qsl, urlencode
 
 from aiohttp import __version__ as aiohttp_version, StreamReader
@@ -16,6 +16,7 @@ else:
 
 AIOHTTP_VERSION = parse_version(aiohttp_version)
 
+stream_reader_factory: Callable[[Optional[asyncio.AbstractEventLoop]], StreamReader]
 if AIOHTTP_VERSION >= parse_version('3.0.0'):
     from aiohttp.client_proto import ResponseHandler
 
