@@ -110,7 +110,8 @@ class RequestMatch(object):
         return self.url_or_pattern == url
 
     def match_regexp(self, url: URL) -> bool:
-        return bool(self.url_or_pattern.match(str(url)))
+        # This method is used if and only if self.url_or_pattern is actually a pattern.
+        return bool(self.url_or_pattern.match(str(url)))  # type:ignore[union-attr]
 
     def match(self, method: str, url: URL) -> bool:
         if self.method != method.lower():
