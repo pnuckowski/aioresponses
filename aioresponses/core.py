@@ -366,7 +366,8 @@ class aioresponses(object):
                 raise response_or_exc
             # If response_or_exc was an exception, it would have been raised.
             # At this point we can be sure it's a ClientResponse
-            response: ClientResponse = response_or_exc  # type:ignore[assignment]
+            response: ClientResponse
+            response = response_or_exc  # type:ignore[assignment]
             is_redirect = response.status in (301, 302, 303, 307, 308)
             if is_redirect and allow_redirects:
                 if hdrs.LOCATION not in response.headers:
