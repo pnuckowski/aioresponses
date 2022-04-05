@@ -111,7 +111,9 @@ class RequestMatch(object):
 
     def match_regexp(self, url: URL) -> bool:
         # This method is used if and only if self.url_or_pattern is a pattern.
-        return bool(self.url_or_pattern.match(str(url)))  # type:ignore[union-attr]
+        return bool(
+            self.url_or_pattern.match(str(url))  # type:ignore[union-attr]
+        )
 
     def match(self, method: str, url: URL) -> bool:
         if self.method != method.lower():
