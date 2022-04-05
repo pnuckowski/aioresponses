@@ -16,7 +16,9 @@ else:
 
 AIOHTTP_VERSION = parse_version(aiohttp_version)
 
-stream_reader_factory: Callable[[Optional[asyncio.AbstractEventLoop]], StreamReader]
+stream_reader_factory: Callable[
+    [Optional[asyncio.AbstractEventLoop]], StreamReader
+]
 if AIOHTTP_VERSION >= parse_version('3.0.0'):
     from aiohttp.client_proto import ResponseHandler
 
