@@ -135,6 +135,30 @@ for convenience use *payload* argument to mock out json response. Example below.
         assert resp2.status == 200
 
 
+**Repeat response for the same url**  
+
+E.g. for cases you want to test retrying mechanisms
+
+.. code:: python
+
+    import asyncio
+    import aiohttp
+    from aioresponses import aioresponses
+
+    @aioresponses()
+    def test_multiple_responses(m):
+        loop = asyncio.get_event_loop()
+        session = aiohttp.ClientSession()
+        m.get('http://example.com', status=500, repeat=True)
+        m.get('http://example.com', status=200)  # will not take effect
+
+        resp1 = loop.run_until_complete(session.get('http://example.com'))
+        resp2 = loop.run_until_complete(session.get('http://example.com'))
+
+        assert resp1.status == 500
+        assert resp2.status == 500
+
+
 **match URLs with regular expressions**
 
 .. code:: python
