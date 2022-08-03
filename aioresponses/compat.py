@@ -2,7 +2,7 @@
 import asyncio  # noqa: F401
 import sys
 from typing import Dict, Optional, Union  # noqa
-from urllib.parse import parse_qsl, urlencode
+from urllib.parse import parse_qsl
 
 from aiohttp import __version__ as aiohttp_version, StreamReader
 from multidict import MultiDict
@@ -47,7 +47,7 @@ def merge_params(
 def normalize_url(url: 'Union[URL, str]') -> 'URL':
     """Normalize url to make comparisons."""
     url = URL(url)
-    return url.with_query(urlencode(sorted(parse_qsl(url.query_string))))
+    return url.with_query(sorted(parse_qsl(url.query_string)))
 
 
 try:
