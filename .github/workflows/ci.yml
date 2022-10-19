@@ -55,10 +55,6 @@ jobs:
             aiohttp-version: aiohttp38
 
           - python-version: "3.10"
-            aiohttp-version: aiohttp35
-          - python-version: "3.10"
-            aiohttp-version: aiohttp36
-          - python-version: "3.10"
             aiohttp-version: aiohttp37
           - python-version: "3.10"
             aiohttp-version: aiohttp38
