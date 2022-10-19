@@ -29,10 +29,8 @@ from aiohttp import (
 )
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict, CIMultiDictProxy
-from pkg_resources import parse_version
 
 from .compat import (
-    AIOHTTP_VERSION,
     URL,
     Pattern,
     stream_reader_factory,
@@ -146,26 +144,22 @@ class RequestMatch(object):
             body = str.encode(body)
         if request_headers is None:
             request_headers = {}
+        loop = Mock()
+        loop.get_debug = Mock()
+        loop.get_debug.return_value = True
         kwargs = {}  # type: Dict[str, Any]
-        if AIOHTTP_VERSION >= parse_version('3.1.0'):
-            loop = Mock()
-            loop.get_debug = Mock()
-            loop.get_debug.return_value = True
-            kwargs['request_info'] = RequestInfo(
-                url=url,
-                method=method,
-                headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
-            )
-            kwargs['writer'] = Mock()
-            kwargs['continue100'] = None
-            kwargs['timer'] = TimerNoop()
-            if AIOHTTP_VERSION < parse_version('3.3.0'):
-                kwargs['auto_decompress'] = True
-            kwargs['traces'] = []
-            kwargs['loop'] = loop
-            kwargs['session'] = None
-        else:
-            loop = None
+        kwargs['request_info'] = RequestInfo(
+            url=url,
+            method=method,
+            headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
+        )
+        kwargs['writer'] = Mock()
+        kwargs['continue100'] = None
+        kwargs['timer'] = TimerNoop()
+        kwargs['traces'] = []
+        kwargs['loop'] = loop
+        kwargs['session'] = None
+
         # We need to initialize headers manually
         _headers = CIMultiDict({hdrs.CONTENT_TYPE: content_type})
         if headers:
@@ -176,13 +170,10 @@ class RequestMatch(object):
         for hdr in _headers.getall(hdrs.SET_COOKIE, ()):
             resp.cookies.load(hdr)
 
-        if AIOHTTP_VERSION >= parse_version('3.3.0'):
-            # Reified attributes
-            resp._headers = _headers
-            resp._raw_headers = raw_headers
-        else:
-            resp.headers = _headers
-            resp.raw_headers = raw_headers
+        # Reified attributes
+        resp._headers = _headers
+        resp._raw_headers = raw_headers
+
         resp.status = status
         resp.reason = reason
         resp.content = stream_reader_factory(loop)

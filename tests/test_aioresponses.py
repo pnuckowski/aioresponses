@@ -277,7 +277,7 @@ class AIOResponsesTestCase(AsyncTestCase):
                         callback=lambda *_, **__: callback_called.set())
             with self.assertRaises(HttpProcessingError):
                 await self.session.get(url)
-            
+
             await callback_called.wait()
 
     async def test_multiple_requests(self):
@@ -632,8 +632,6 @@ class AIOResponseRedirectTest(AsyncTestCase):
         self.assertEqual(str(response.url), self.url)
 
     @aioresponses()
-    @skipIf(condition=AIOHTTP_VERSION < parse_version('3.1.0'),
-            reason='aiohttp<3.1.0 does not add request info on response')
     async def test_request_info(self, rsps):
         rsps.get(self.url, status=200)
 
@@ -644,8 +642,6 @@ class AIOResponseRedirectTest(AsyncTestCase):
         assert request_info.headers == {}
 
     @aioresponses()
-    @skipIf(condition=AIOHTTP_VERSION < parse_version('3.1.0'),
-            reason='aiohttp<3.1.0 does not add request info on response')
     async def test_request_info_with_original_request_headers(self, rsps):
         headers = {"Authorization": "Bearer access-token"}
         rsps.get(self.url, status=200)
