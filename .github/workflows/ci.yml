@@ -19,25 +19,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python-version: 3.6
-            aiohttp-version: aiohttp30
-          - python-version: 3.6
-            aiohttp-version: aiohttp31
-          - python-version: 3.6
-            aiohttp-version: aiohttp32
-          - python-version: 3.6
-            aiohttp-version: aiohttp33
-          - python-version: 3.6
-            aiohttp-version: aiohttp34
-          - python-version: 3.6
-            aiohttp-version: aiohttp35
-          - python-version: 3.6
-            aiohttp-version: aiohttp36
-          - python-version: 3.6
-            aiohttp-version: aiohttp37
-          - python-version: 3.6
-            aiohttp-version: aiohttp38
-
           - python-version: 3.7
             aiohttp-version: aiohttp33
           - python-version: 3.7
