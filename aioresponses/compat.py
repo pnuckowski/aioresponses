@@ -5,6 +5,7 @@ from typing import Dict, Optional, Union  # noqa
 from urllib.parse import parse_qsl, urlencode
 
 from aiohttp import __version__ as aiohttp_version, StreamReader
+from aiohttp.client_proto import ResponseHandler
 from multidict import MultiDict
 from pkg_resources import parse_version
 from yarl import URL
@@ -16,20 +17,12 @@ else:
 
 AIOHTTP_VERSION = parse_version(aiohttp_version)
 
-if AIOHTTP_VERSION >= parse_version('3.0.0'):
-    from aiohttp.client_proto import ResponseHandler
 
-
-    def stream_reader_factory(  # noqa
-        loop: 'Optional[asyncio.AbstractEventLoop]' = None
-    ):
-        protocol = ResponseHandler(loop=loop)
-        return StreamReader(protocol, limit=2 ** 16, loop=loop)
-
-else:
-
-    def stream_reader_factory(loop=None):
-        return StreamReader()
+def stream_reader_factory(  # noqa
+    loop: 'Optional[asyncio.AbstractEventLoop]' = None
+):
+    protocol = ResponseHandler(loop=loop)
+    return StreamReader(protocol, limit=2 ** 16, loop=loop)
 
 
 def merge_params(

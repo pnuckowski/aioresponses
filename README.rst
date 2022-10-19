@@ -40,8 +40,8 @@ Installing
 
 Supported versions
 ------------------
-- Python 3.5.3+
-- aiohttp>=2.0.0,<4.0.0
+- Python 3.6+
+- aiohttp>=3.0.0,<4.0.0
 
 Usage
 --------
