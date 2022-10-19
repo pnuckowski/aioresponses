@@ -20,7 +20,7 @@ AIOHTTP_VERSION = parse_version(aiohttp_version)
 
 def stream_reader_factory(  # noqa
     loop: 'Optional[asyncio.AbstractEventLoop]' = None
-):
+) -> StreamReader:
     protocol = ResponseHandler(loop=loop)
     return StreamReader(protocol, limit=2 ** 16, loop=loop)
 
