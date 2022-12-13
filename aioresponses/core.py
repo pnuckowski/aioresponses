@@ -364,12 +364,16 @@ class aioresponses(object):
 
             if self.is_exception(response_or_exc):
                 raise response_or_exc
-            is_redirect = response_or_exc.status in (301, 302, 303, 307, 308)
+            # If response_or_exc was an exception, it would have been raised.
+            # At this point we can be sure it's a ClientResponse
+            response: ClientResponse
+            response = response_or_exc  # type:ignore[assignment]
+            is_redirect = response.status in (301, 302, 303, 307, 308)
             if is_redirect and allow_redirects:
-                if hdrs.LOCATION not in response_or_exc.headers:
+                if hdrs.LOCATION not in response.headers:
                     break
-                history.append(response_or_exc)
-                redirect_url = URL(response_or_exc.headers[hdrs.LOCATION])
+                history.append(response)
+                redirect_url = URL(response.headers[hdrs.LOCATION])
                 if redirect_url.is_absolute():
                     url = redirect_url
                 else:
@@ -379,9 +383,8 @@ class aioresponses(object):
             else:
                 break
 
-        response_or_exc._history = tuple(history)
-
-        return response_or_exc
+        response._history = tuple(history)
+        return response
 
     async def _request_mock(self, orig_self: ClientSession,
                             method: str, url: 'Union[URL, str]',
