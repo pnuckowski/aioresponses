@@ -10,3 +10,4 @@ pytest-html==2.1.1
 ddt==1.4.1
 typing
 asynctest==0.13.0
+yarl==1.7.2
