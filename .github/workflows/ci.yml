@@ -24,28 +24,28 @@ jobs:
         include:
           - python-minor-version: 6
             aiohttp-version: aiohttp30
-            os: ubuntu-18.04
+            os: ubuntu-20.04
           - python-minor-version: 6
             aiohttp-version: aiohttp31
-            os: ubuntu-18.04
+            os: ubuntu-20.04
           - python-minor-version: 6
             aiohttp-version: aiohttp32
-            os: ubuntu-18.04
+            os: ubuntu-20.04
           - python-minor-version: 6
             aiohttp-version: aiohttp33
-            os: ubuntu-18.04
+            os: ubuntu-20.04
           - python-minor-version: 6
             aiohttp-version: aiohttp34
-            os: ubuntu-18.04
+            os: ubuntu-20.04
           - python-minor-version: 6
             aiohttp-version: aiohttp35
-            os: ubuntu-18.04
+            os: ubuntu-20.04
           - python-minor-version: 6
             aiohttp-version: aiohttp36
-            os: ubuntu-18.04
+            os: ubuntu-20.04
           - python-minor-version: 6
             aiohttp-version: aiohttp37
-            os: ubuntu-18.04
+            os: ubuntu-20.04
 
           - python-minor-version: 7
             aiohttp-version: aiohttp33
