@@ -66,6 +66,7 @@ Supported HTTP methods: **GET**, **POST**, **PUT**, **PATCH**, **DELETE** and **
         resp = loop.run_until_complete(session.get('http://example.com'))
 
         assert resp.status == 200
+        mocked.assert_called_once_with('http://example.com')
 
 
 for convenience use *payload* argument to mock out json response. Example below.
@@ -88,6 +89,7 @@ for convenience use *payload* argument to mock out json response. Example below.
             data = loop.run_until_complete(resp.json())
 
             assert dict(foo='bar') == data
+            m.assert_called_once_with('http://test.example.com')
 
 **aioresponses allows to mock out any HTTP headers**
 
@@ -112,6 +114,7 @@ for convenience use *payload* argument to mock out json response. Example below.
         # note that we pass 'connection' but get 'Connection' (capitalized)
         # under the neath `multidict` is used to work with HTTP headers
         assert resp.headers['Connection'] == 'keep-alive'
+        m.assert_called_once_with('http://example.com', method='POST')
 
 **allows to register different responses for the same url**
 

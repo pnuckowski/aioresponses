@@ -108,7 +108,10 @@ class RequestMatch(object):
         return self.url_or_pattern == url
 
     def match_regexp(self, url: URL) -> bool:
-        return bool(self.url_or_pattern.match(str(url)))
+        # This method is used if and only if self.url_or_pattern is a pattern.
+        return bool(
+            self.url_or_pattern.match(str(url))  # type:ignore[union-attr]
+        )
 
     def match(self, method: str, url: URL) -> bool:
         if self.method != method.lower():
@@ -322,6 +325,113 @@ class aioresponses(object):
             callback=callback,
         ))
 
+    def _format_call_signature(self, *args, **kwargs) -> str:
+        message = '%s(%%s)' % self.__class__.__name__ or 'mock'
+        formatted_args = ''
+        args_string = ', '.join([repr(arg) for arg in args])
+        kwargs_string = ', '.join([
+            '%s=%r' % (key, value) for key, value in kwargs.items()
+        ])
+        if args_string:
+            formatted_args = args_string
+        if kwargs_string:
+            if formatted_args:
+                formatted_args += ', '
+            formatted_args += kwargs_string
+
+        return message % formatted_args
+
+    def assert_not_called(self):
+        """assert that the mock was never called.
+        """
+        if len(self.requests) != 0:
+            msg = ("Expected '%s' to not have been called. Called %s times."
+                   % (self.__class__.__name__,
+                      len(self._responses)))
+            raise AssertionError(msg)
+
+    def assert_called(self):
+        """assert that the mock was called at least once.
+        """
+        if len(self.requests) == 0:
+            msg = ("Expected '%s' to have been called."
+                   % (self.__class__.__name__,))
+            raise AssertionError(msg)
+
+    def assert_called_once(self):
+        """assert that the mock was called only once.
+        """
+        call_count = len(self.requests)
+        if call_count == 1:
+            call_count = len(list(self.requests.values())[0])
+        if not call_count == 1:
+            msg = ("Expected '%s' to have been called once. Called %s times."
+                   % (self.__class__.__name__,
+                      call_count))
+
+            raise AssertionError(msg)
+
+    def assert_called_with(self, url: 'Union[URL, str, Pattern]',
+                           method: str = hdrs.METH_GET,
+                           *args: Any,
+                           **kwargs: Any):
+        """assert that the last call was made with the specified arguments.
+
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        url = normalize_url(merge_params(url, kwargs.get('params')))
+        method = method.upper()
+        key = (method, url)
+        try:
+            expected = self.requests[key][-1]
+        except KeyError:
+            expected_string = self._format_call_signature(
+                url, method=method, *args, **kwargs
+            )
+            raise AssertionError(
+                '%s call not found' % expected_string
+            )
+        actual = self._build_request_call(method, *args, **kwargs)
+        if not expected == actual:
+            expected_string = self._format_call_signature(
+                expected,
+            )
+            actual_string = self._format_call_signature(
+                actual
+            )
+            raise AssertionError(
+                '%s != %s' % (expected_string, actual_string)
+            )
+
+    def assert_any_call(self, url: 'Union[URL, str, Pattern]',
+                        method: str = hdrs.METH_GET,
+                        *args: Any,
+                        **kwargs: Any):
+        """assert the mock has been called with the specified arguments.
+        The assert passes if the mock has *ever* been called, unlike
+        `assert_called_with` and `assert_called_once_with` that only pass if
+        the call is the most recent one."""
+        url = normalize_url(merge_params(url, kwargs.get('params')))
+        method = method.upper()
+        key = (method, url)
+
+        try:
+            self.requests[key]
+        except KeyError:
+            expected_string = self._format_call_signature(
+                url, method=method, *args, **kwargs
+            )
+            raise AssertionError(
+                '%s call not found' % expected_string
+            )
+
+    def assert_called_once_with(self, *args: Any, **kwargs: Any):
+        """assert that the mock was called once with the specified arguments.
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the only call to the mock."""
+        self.assert_called_once()
+        self.assert_called_with(*args, **kwargs)
+
     @staticmethod
     def is_exception(resp_or_exc: Union[ClientResponse, Exception]) -> bool:
         if inspect.isclass(resp_or_exc):
@@ -355,12 +465,16 @@ class aioresponses(object):
 
             if self.is_exception(response_or_exc):
                 raise response_or_exc
-            is_redirect = response_or_exc.status in (301, 302, 303, 307, 308)
+            # If response_or_exc was an exception, it would have been raised.
+            # At this point we can be sure it's a ClientResponse
+            response: ClientResponse
+            response = response_or_exc  # type:ignore[assignment]
+            is_redirect = response.status in (301, 302, 303, 307, 308)
             if is_redirect and allow_redirects:
-                if hdrs.LOCATION not in response_or_exc.headers:
+                if hdrs.LOCATION not in response.headers:
                     break
-                history.append(response_or_exc)
-                redirect_url = URL(response_or_exc.headers[hdrs.LOCATION])
+                history.append(response)
+                redirect_url = URL(response.headers[hdrs.LOCATION])
                 if redirect_url.is_absolute():
                     url = redirect_url
                 else:
@@ -370,9 +484,8 @@ class aioresponses(object):
             else:
                 break
 
-        response_or_exc._history = tuple(history)
-
-        return response_or_exc
+        response._history = tuple(history)
+        return response
 
     async def _request_mock(self, orig_self: ClientSession,
                             method: str, url: 'Union[URL, str]',
@@ -393,12 +506,8 @@ class aioresponses(object):
 
         key = (method, url)
         self.requests.setdefault(key, [])
-        try:
-            kwargs_copy = copy.deepcopy(kwargs)
-        except (TypeError, ValueError):
-            # Handle the fact that some values cannot be deep copied
-            kwargs_copy = kwargs
-        self.requests[key].append(RequestCall(args, kwargs_copy))
+        request_call = self._build_request_call(method, *args, **kwargs)
+        self.requests[key].append(request_call)
 
         response = await self.match(method, url, **kwargs)
 
@@ -422,3 +531,19 @@ class aioresponses(object):
             response.raise_for_status()
 
         return response
+
+    def _build_request_call(self, method: str = hdrs.METH_GET,
+                            *args: Any,
+                            allow_redirects: bool = True,
+                            **kwargs: Any):
+        """Return request call."""
+        kwargs.setdefault('allow_redirects', allow_redirects)
+        if method == 'POST':
+            kwargs.setdefault('data', None)
+
+        try:
+            kwargs_copy = copy.deepcopy(kwargs)
+        except (TypeError, ValueError):
+            # Handle the fact that some values cannot be deep copied
+            kwargs_copy = kwargs
+        return RequestCall(args, kwargs_copy)
