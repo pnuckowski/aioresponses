@@ -79,6 +79,10 @@ jobs:
           - python-minor-version: 10
             aiohttp-version: aiohttp38
             os: ubuntu-latest
+
+          - python-minor-version: 11
+            aiohttp-version: aiohttp38
+            os: ubuntu-latest
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
