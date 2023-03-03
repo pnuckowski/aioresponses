@@ -234,6 +234,7 @@ class aioresponses(object):
     def __init__(self, **kwargs: Any):
         self._param = kwargs.pop('param', None)
         self._passthrough = kwargs.pop('passthrough', [])
+        self.passthrough_unmatched = kwargs.pop('passthrough_unmatched', False)
         self.patcher = patch('aiohttp.client.ClientSession._request',
                              side_effect=self._request_mock,
                              autospec=True)
@@ -521,6 +522,10 @@ class aioresponses(object):
         response = await self.match(method, url, **kwargs)
 
         if response is None:
+            if self.passthrough_unmatched:
+                return (await self.patcher.temp_original(
+                    orig_self, method, url_origin, *args, **kwargs
+                ))
             raise ClientConnectionError(
                 'Connection refused: {} {}'.format(method, url)
             )
