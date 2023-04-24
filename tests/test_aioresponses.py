@@ -582,6 +582,15 @@ class AIOResponsesTestCase(AsyncTestCase):
             m.assert_called_once()
 
     @aioresponses()
+    async def test_integer_repeat(self, m: aioresponses):
+        m.get(self.url, repeat=2)
+        m.assert_not_called()
+        await self.session.get(self.url)
+        await self.session.get(self.url)
+        with self.assertRaises(ClientConnectionError):
+            await self.session.get(self.url)
+
+    @aioresponses()
     async def test_assert_any_call(self, m: aioresponses):
         http_bin_url = "http://httpbin.org"
         m.get(self.url)

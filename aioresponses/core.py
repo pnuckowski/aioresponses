@@ -78,7 +78,7 @@ class RequestMatch(object):
                  content_type: str = 'application/json',
                  response_class: Optional[Type[ClientResponse]] = None,
                  timeout: bool = False,
-                 repeat: bool = False,
+                 repeat: Union[bool, int] = False,
                  reason: Optional[str] = None,
                  callback: Optional[Callable] = None):
         if isinstance(url, Pattern):
@@ -313,7 +313,7 @@ class aioresponses(object):
             payload: Optional[Dict] = None,
             headers: Optional[Dict] = None,
             response_class: Optional[Type[ClientResponse]] = None,
-            repeat: bool = False,
+            repeat: Union[bool, int] = False,
             timeout: bool = False,
             reason: Optional[str] = None,
             callback: Optional[Callable] = None) -> None:
@@ -471,6 +471,10 @@ class aioresponses(object):
 
             if matcher.repeat is False:
                 del self._matches[key]
+            elif matcher.repeat == 2:
+                matcher.repeat = False
+            elif isinstance(matcher.repeat, int):
+                matcher.repeat -= 1
 
             if self.is_exception(response_or_exc):
                 raise response_or_exc

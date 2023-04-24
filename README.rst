@@ -152,14 +152,16 @@ E.g. for cases you want to test retrying mechanisms
     def test_multiple_responses(m):
         loop = asyncio.get_event_loop()
         session = aiohttp.ClientSession()
-        m.get('http://example.com', status=500, repeat=True)
-        m.get('http://example.com', status=200)  # will not take effect
+        m.get('http://example.com', status=500, repeat=2)
+        m.get('http://example.com', status=200)  # will take effect after two preceding calls
 
         resp1 = loop.run_until_complete(session.get('http://example.com'))
         resp2 = loop.run_until_complete(session.get('http://example.com'))
+        resp3 = loop.run_until_complete(session.get('http://example.com'))
 
         assert resp1.status == 500
         assert resp2.status == 500
+        assert resp3.status == 200
 
 
 **match URLs with regular expressions**
