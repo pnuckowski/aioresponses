@@ -515,7 +515,7 @@ class aioresponses(object):
 
         url_origin = url
         # construct URL with ClientSession._base_url
-        if orig_self._base_url:
+        if getattr(orig_self, "_base_url", None):
             url_origin = f"{orig_self._base_url}{url}"
             url = f"{orig_self._base_url}{url}"
         # retrieve ClientSession headers
