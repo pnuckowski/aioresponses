@@ -22,31 +22,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python-minor-version: 6
-            aiohttp-version: aiohttp30
-            os: ubuntu-20.04
-          - python-minor-version: 6
-            aiohttp-version: aiohttp31
-            os: ubuntu-20.04
-          - python-minor-version: 6
-            aiohttp-version: aiohttp32
-            os: ubuntu-20.04
-          - python-minor-version: 6
-            aiohttp-version: aiohttp33
-            os: ubuntu-20.04
-          - python-minor-version: 6
-            aiohttp-version: aiohttp34
-            os: ubuntu-20.04
-          - python-minor-version: 6
-            aiohttp-version: aiohttp35
-            os: ubuntu-20.04
-          - python-minor-version: 6
-            aiohttp-version: aiohttp36
-            os: ubuntu-20.04
-          - python-minor-version: 6
-            aiohttp-version: aiohttp37
-            os: ubuntu-20.04
-
           - python-minor-version: 7
             aiohttp-version: aiohttp33
             os: ubuntu-latest
@@ -61,6 +36,9 @@ jobs:
             os: ubuntu-latest
           - python-minor-version: 7
             aiohttp-version: aiohttp37
+            os: ubuntu-latest
+          - python-minor-version: 7
+            aiohttp-version: aiohttp38
             os: ubuntu-latest
 
           - python-minor-version: 8
@@ -78,6 +56,9 @@ jobs:
           - python-minor-version: 8
             aiohttp-version: aiohttp37
             os: ubuntu-latest
+          - python-minor-version: 8
+            aiohttp-version: aiohttp38
+            os: ubuntu-latest
 
           - python-minor-version: 9
             aiohttp-version: aiohttp35
@@ -87,6 +68,20 @@ jobs:
             os: ubuntu-latest
           - python-minor-version: 9
             aiohttp-version: aiohttp37
+            os: ubuntu-latest
+          - python-minor-version: 9
+            aiohttp-version: aiohttp38
+            os: ubuntu-latest
+
+          - python-minor-version: 10
+            aiohttp-version: aiohttp37
+            os: ubuntu-latest
+          - python-minor-version: 10
+            aiohttp-version: aiohttp38
+            os: ubuntu-latest
+
+          - python-minor-version: 11
+            aiohttp-version: aiohttp38
             os: ubuntu-latest
     runs-on: ${{ matrix.os }}
     steps:
