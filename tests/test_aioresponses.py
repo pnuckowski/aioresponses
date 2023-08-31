@@ -11,7 +11,7 @@ from aiohttp import http
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 from ddt import ddt, data
-from pkg_resources import parse_version
+from packaging.version import Version
 
 try:
     from aiohttp.errors import (
@@ -30,6 +30,8 @@ from aioresponses.compat import AIOHTTP_VERSION, URL
 from aioresponses import CallbackResult, aioresponses
 from .base import fail_on, skipIf, AsyncTestCase
 
+
+MINIMUM_AIOHTTP_VERSION = Version('3.4.0')
 
 @ddt
 class AIOResponsesTestCase(AsyncTestCase):
@@ -118,7 +120,7 @@ class AIOResponsesTestCase(AsyncTestCase):
         self.assertEqual(cm.exception.message, http.RESPONSES[400][0])
 
     @aioresponses()
-    @skipIf(condition=AIOHTTP_VERSION < parse_version('3.4.0'),
+    @skipIf(condition=AIOHTTP_VERSION < MINIMUM_AIOHTTP_VERSION,
             reason='aiohttp<3.4.0 does not support raise_for_status '
                    'arguments for requests')
     async def test_request_raise_for_status(self, m):
@@ -664,7 +666,7 @@ class AIOResponsesRaiseForStatusSessionTestCase(AsyncTestCase):
         self.assertEqual(cm.exception.message, http.RESPONSES[400][0])
 
     @aioresponses()
-    @skipIf(condition=AIOHTTP_VERSION < parse_version('3.4.0'),
+    @skipIf(condition=AIOHTTP_VERSION < MINIMUM_AIOHTTP_VERSION,
             reason='aiohttp<3.4.0 does not support raise_for_status '
                    'arguments for requests')
     async def test_do_not_raise_for_status(self, m):

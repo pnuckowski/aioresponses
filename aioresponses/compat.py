@@ -7,7 +7,7 @@ from urllib.parse import parse_qsl, urlencode
 from aiohttp import __version__ as aiohttp_version, StreamReader
 from aiohttp.client_proto import ResponseHandler
 from multidict import MultiDict
-from pkg_resources import parse_version
+from packaging.version import Version
 from yarl import URL
 
 if sys.version_info < (3, 7):
@@ -15,7 +15,7 @@ if sys.version_info < (3, 7):
 else:
     from re import Pattern
 
-AIOHTTP_VERSION = parse_version(aiohttp_version)
+AIOHTTP_VERSION = Version(aiohttp_version)
 
 
 def stream_reader_factory(  # noqa
