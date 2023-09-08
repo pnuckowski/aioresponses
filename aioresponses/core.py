@@ -469,7 +469,7 @@ class aioresponses(object):
             else:
                 return None
 
-            if matcher.repeat is False:
+            if matcher.repeat in (False, 1):
                 del self._matches[key]
             elif matcher.repeat == 2:
                 matcher.repeat = False
