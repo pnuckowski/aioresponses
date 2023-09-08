@@ -140,7 +140,11 @@ for convenience use *payload* argument to mock out json response. Example below.
 
 **Repeat response for the same url**  
 
-E.g. for cases you want to test retrying mechanisms
+E.g. for cases where you want to test retrying mechanisms.
+
+- By default, ``repeat=False`` means the response is not repeated (``repeat=1`` does the same).
+- Use ``repeat=n`` to repeat a response n times.
+- Use ``repeat=True`` to repeat a response indefinitely.
 
 .. code:: python
 
