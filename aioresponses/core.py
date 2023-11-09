@@ -156,7 +156,10 @@ class RequestMatch(object):
             method=method,
             headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
         )
-        kwargs['writer'] = Mock()
+        if AIOHTTP_VERSION >= parse_version("3.9.0b1"):
+            kwargs['writer'] = AsyncMock()()
+        else:
+            kwargs['writer'] = Mock()
         kwargs['continue100'] = None
         kwargs['timer'] = TimerNoop()
         kwargs['traces'] = []
