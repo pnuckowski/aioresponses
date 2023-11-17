@@ -156,7 +156,7 @@ class RequestMatch(object):
             method=method,
             headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
         )
-        kwargs['writer'] = Mock()
+        kwargs['writer'] = None
         kwargs['continue100'] = None
         kwargs['timer'] = TimerNoop()
         kwargs['traces'] = []
