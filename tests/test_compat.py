@@ -5,7 +5,7 @@ from unittest import TestCase
 from ddt import ddt, data
 from yarl import URL
 
-from aioresponses.compat import merge_params
+from aioresponses.compat import merge_params, normalize_url
 
 
 def get_url(url: str, as_str: bool) -> Union[URL, str]:
@@ -19,6 +19,7 @@ class CompatTestCase(TestCase):
     def setUp(self):
         self.url_with_parameters = 'http://example.com/api?foo=bar#fragment'
         self.url_without_parameters = 'http://example.com/api?#fragment'
+        self.url_with_unsafe_chars_and_unordered_params = 'http://example.com/api?foo=bar&type=arg@&see:=thatagain'
 
     @data(True, False)
     def test_no_params_returns_same_url__as_str(self, as_str):
@@ -46,3 +47,9 @@ class CompatTestCase(TestCase):
         url = get_url(self.url_without_parameters, as_str)
 
         self.assertEqual(merge_params(url, {'x': 42}), expected_url)
+
+    def test_normalize_url(self):
+        self.assertEqual(
+            normalize_url(self.url_with_unsafe_chars_and_unordered_params),
+            URL('http://example.com/api?foo=bar&see:=thatagain&type=arg@')
+        )
