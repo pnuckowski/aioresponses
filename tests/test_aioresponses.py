@@ -676,6 +676,21 @@ class AIOResponsesRaiseForStatusSessionTestCase(AsyncTestCase):
 
         self.assertEqual(response.status, 400)
 
+    @aioresponses()
+    @skipIf(condition=AIOHTTP_VERSION < Version('3.9.0'),
+            reason='aiohttp<3.9.0 does not support callable raise_for_status '
+                   'arguments for requests')
+    async def test_callable_raise_for_status(self, m):
+        async def raise_for_status(response: ClientResponse):
+            if response.status >= 400:
+                raise Exception("callable raise_for_status")
+
+        m.get(self.url, status=400)
+        with self.assertRaises(Exception) as cm:
+            await self.session.get(self.url,
+                                   raise_for_status=raise_for_status)
+        self.assertEqual(str(cm.exception), "callable raise_for_status")
+
 
 class AIOResponseRedirectTest(AsyncTestCase):
 

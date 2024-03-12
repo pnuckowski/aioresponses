@@ -527,7 +527,10 @@ class aioresponses(object):
             raise_for_status = getattr(
                 orig_self, '_raise_for_status', False
             )
-        if raise_for_status:
+
+        if callable(raise_for_status):
+            await raise_for_status(response)
+        elif raise_for_status:
             response.raise_for_status()
 
         return response
