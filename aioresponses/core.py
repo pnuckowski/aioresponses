@@ -373,35 +373,29 @@ class aioresponses(object):
 
     def assert_called_with(self, url: 'Union[URL, str, Pattern]',
                            method: str = hdrs.METH_GET,
+                           args_to_match: Optional[Tuple] = None,
                            *args: Any,
                            **kwargs: Any):
-        """assert that the last call was made with the specified arguments.
+        """Assert that the last call was made with the specified arguments."""
 
-        Raises an AssertionError if the args and keyword args passed in are
-        different to the last call to the mock."""
         url = normalize_url(merge_params(url, kwargs.get('params')))
         method = method.upper()
         key = (method, url)
-        try:
-            expected = self.requests[key][-1]
-        except KeyError:
-            expected_string = self._format_call_signature(
-                url, method=method, *args, **kwargs
-            )
-            raise AssertionError(
-                '%s call not found' % expected_string
-            )
-        actual = self._build_request_call(method, *args, **kwargs)
-        if not expected == actual:
-            expected_string = self._format_call_signature(
-                expected,
-            )
-            actual_string = self._format_call_signature(
-                actual
-            )
-            raise AssertionError(
-                '%s != %s' % (expected_string, actual_string)
-            )
+
+        if not self.requests.get(key):
+            raise AssertionError(f'{self._format_call_signature(url, method=method, *args, **kwargs)} call not found')
+
+        actual = self.requests[key][-1]
+        expected = self._build_request_call(method, *args, **kwargs)
+
+        if args_to_match is not None:
+            raise_error = any(
+                arg not in actual.kwargs or actual.kwargs[arg] != expected.kwargs[arg] for arg in args_to_match)
+        else:
+            raise_error = actual != expected
+
+        if raise_error:
+            raise AssertionError(f'{self._format_call_signature(actual)} != {self._format_call_signature(expected)}')
 
     def assert_any_call(self, url: 'Union[URL, str, Pattern]',
                         method: str = hdrs.METH_GET,
