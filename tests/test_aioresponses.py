@@ -209,6 +209,62 @@ class AIOResponsesTestCase(AsyncTestCase):
             )
 
     @aioresponses()
+    def test_post_with_data_selected_field_to_compare(self, m: aioresponses):
+        body = {'foo': 'bar'}
+        payload = {'spam': 'eggs'}
+        user_agent = {'User-Agent': 'aioresponses'}
+        m.post(
+            self.url,
+            payload=payload,
+            headers=dict(connection='keep-alive'),
+            body=body,
+        )
+        response = self.run_async(
+            self.session.post(
+                self.url,
+                data=payload,
+                headers=user_agent
+            )
+        )
+        self.assertIsInstance(response, ClientResponse)
+        self.assertEqual(response.status, 200)
+        response_data = self.run_async(response.json())
+        self.assertEqual(response_data, payload)
+        m.assert_called_once_with(
+            self.url,
+            method='POST',
+            args_to_match=['data', 'headers'],
+            data=payload,
+            headers={'User-Agent': 'aioresponses'}
+        )
+        m.assert_called_once_with(
+            self.url,
+            method='POST',
+            args_to_match=['data'],
+            data=payload,
+        )
+        m.assert_called_once_with(
+            self.url,
+            method='POST',
+            args_to_match=['headers'],
+            headers={'User-Agent': 'aioresponses'}
+        )
+        m.assert_called_once_with(
+            self.url,
+            method='POST',
+            args_to_match=[],
+        )
+        # Wrong data
+        with self.assertRaises(AssertionError):
+            m.assert_called_once_with(
+                self.url,
+                method='POST',
+                args_to_match=['data', 'headers', 'body'],
+                data=body,
+                headers={'User-Agent': 'aioresponses'}
+            )
+
+    @aioresponses()
     async def test_streaming(self, m):
         m.get(self.url, body='Test')
         resp = await self.session.get(self.url)
