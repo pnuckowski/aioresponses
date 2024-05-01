@@ -212,6 +212,9 @@ class RequestMatch(object):
             reason=result.reason)
         return resp
 
+    def __repr__(self) -> str:
+        return f"RequestMatch('{self.url_or_pattern}')"
+
 
 RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
 
