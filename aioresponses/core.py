@@ -469,11 +469,12 @@ class aioresponses(object):
             else:
                 return None
 
-            if matcher.repeat in (False, 1):
-                del self._matches[key]
-            elif matcher.repeat == 2:
-                matcher.repeat = False
-            elif isinstance(matcher.repeat, int):
+            if isinstance(matcher.repeat, bool):
+                if not matcher.repeat:
+                    del self._matches[key]
+            else:
+                if matcher.repeat == 1:
+                    del self._matches[key]
                 matcher.repeat -= 1
 
             if self.is_exception(response_or_exc):
