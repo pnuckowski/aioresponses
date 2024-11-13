@@ -155,6 +155,7 @@ class RequestMatch(object):
             url=url,
             method=method,
             headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
+            real_url=url
         )
         kwargs['writer'] = None
         kwargs['continue100'] = None
