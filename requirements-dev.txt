@@ -10,4 +10,5 @@ pytest-html==2.1.1
 ddt==1.4.1
 typing
 asynctest==0.13.0
-yarl==1.8.2
+yarl==1.9.4
+setuptools==69.5.1

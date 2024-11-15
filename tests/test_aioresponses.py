@@ -10,7 +10,7 @@ from aiohttp import hdrs
 from aiohttp import http
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 from packaging.version import Version
 
 try:
@@ -79,6 +79,31 @@ class AIOResponsesTestCase(AsyncTestCase):
         response = await self.session.get(self.url)
         self.assertIsInstance(response, ClientResponse)
         self.assertEqual(response.status, 204)
+
+    @unpack
+    @data(
+        ("http://example.com", "/api?foo=bar#fragment"),
+        ("http://example.com/", "/api?foo=bar#fragment")
+    )
+    @aioresponses()
+    async def test_base_url(self, m, base_url, relative_url):
+        m.get(self.url, status=200)
+        self.session = ClientSession(base_url=base_url)
+        response = await self.session.get(relative_url)
+        self.assertEqual(response.status, 200)
+
+    @aioresponses()
+    async def test_session_headers(self, m):
+        m.get(self.url)
+        self.session = ClientSession(headers={"Authorization": "Bearer foobar"})
+        response = await self.session.get(self.url)
+
+        self.assertEqual(response.status, 200)
+
+        # Check that the headers from the ClientSession are within the request
+        key = ('GET', URL(self.url))
+        request = m.requests[key][0]
+        self.assertEqual(request.kwargs["headers"]["Authorization"], 'Bearer foobar')
 
     @aioresponses()
     async def test_returned_response_headers(self, m):
