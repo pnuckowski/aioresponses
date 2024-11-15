@@ -235,6 +235,7 @@ E.g. for cases you want to test retrying mechanisms
 **also you can passthrough all requests except specified by mocking object**
 
 .. code:: python
+
     import asyncio
     import aiohttp
     from aioresponses import aioresponses
