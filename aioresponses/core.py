@@ -213,6 +213,9 @@ class RequestMatch(object):
             reason=result.reason)
         return resp
 
+    def __repr__(self) -> str:
+        return f"RequestMatch('{self.url_or_pattern}')"
+
 
 RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
 
@@ -497,7 +500,14 @@ class aioresponses(object):
         if orig_self.closed:
             raise RuntimeError('Session is closed')
 
-        url_origin = url
+        # Join url with ClientSession._base_url
+        url = orig_self._build_url(url)
+        url_origin = str(url)
+
+        # Combine ClientSession headers with passed headers
+        if orig_self.headers:
+            kwargs["headers"] = orig_self._prepare_headers(kwargs.get("headers"))
+
         url = normalize_url(merge_params(url, kwargs.get('params')))
         url_str = str(url)
         for prefix in self._passthrough:
