@@ -11,4 +11,4 @@ ddt==1.4.1
 typing
 asynctest==0.13.0
 yarl==1.9.4
-setuptools==69.5.1
+setuptools==70.0.0
