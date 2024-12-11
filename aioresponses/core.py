@@ -40,7 +40,6 @@ from .compat import (
     RequestInfo, AIOHTTP_VERSION,
 )
 
-
 _FuncT = TypeVar("_FuncT", bound=Callable[..., Any])
 
 
@@ -224,7 +223,7 @@ RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
     _matches = None  # type: Dict[str, RequestMatch]
-    _responses = None  # type: List[ClientResponse]
+    _responses: List[ClientResponse] = None
     requests = None  # type: Dict
 
     def __init__(self, **kwargs: Any):
