@@ -86,7 +86,7 @@ class AIOResponsesTestCase(AsyncTestCase):
         ("http://example.com/", "/api?foo=bar#fragment")
     )
     @aioresponses()
-    async def test_base_url(self, m, base_url, relative_url):
+    async def test_base_url(self, base_url, relative_url, m):
         m.get(self.url, status=200)
         self.session = ClientSession(base_url=base_url)
         response = await self.session.get(relative_url)
