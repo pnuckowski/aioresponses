@@ -29,18 +29,16 @@ from aiohttp import (
 )
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict, CIMultiDictProxy
-from pkg_resources import parse_version
+from packaging.version import Version
 
 from .compat import (
-    AIOHTTP_VERSION,
     URL,
     Pattern,
     stream_reader_factory,
     merge_params,
     normalize_url,
-    RequestInfo,
+    RequestInfo, AIOHTTP_VERSION,
 )
-
 
 _FuncT = TypeVar("_FuncT", bound=Callable[..., Any])
 
@@ -78,7 +76,7 @@ class RequestMatch(object):
                  content_type: str = 'application/json',
                  response_class: Optional[Type[ClientResponse]] = None,
                  timeout: bool = False,
-                 repeat: bool = False,
+                 repeat: Union[bool, int] = False,
                  reason: Optional[str] = None,
                  callback: Optional[Callable] = None):
         if isinstance(url, Pattern):
@@ -149,26 +147,23 @@ class RequestMatch(object):
             body = str.encode(body)
         if request_headers is None:
             request_headers = {}
+        loop = Mock()
+        loop.get_debug = Mock()
+        loop.get_debug.return_value = True
         kwargs = {}  # type: Dict[str, Any]
-        if AIOHTTP_VERSION >= parse_version('3.1.0'):
-            loop = Mock()
-            loop.get_debug = Mock()
-            loop.get_debug.return_value = True
-            kwargs['request_info'] = RequestInfo(
-                url=url,
-                method=method,
-                headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
-            )
-            kwargs['writer'] = Mock()
-            kwargs['continue100'] = None
-            kwargs['timer'] = TimerNoop()
-            if AIOHTTP_VERSION < parse_version('3.3.0'):
-                kwargs['auto_decompress'] = True
-            kwargs['traces'] = []
-            kwargs['loop'] = loop
-            kwargs['session'] = None
-        else:
-            loop = None
+        kwargs['request_info'] = RequestInfo(
+            url=url,
+            method=method,
+            headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
+            real_url=url
+        )
+        kwargs['writer'] = None
+        kwargs['continue100'] = None
+        kwargs['timer'] = TimerNoop()
+        kwargs['traces'] = []
+        kwargs['loop'] = loop
+        kwargs['session'] = None
+
         # We need to initialize headers manually
         _headers = CIMultiDict({hdrs.CONTENT_TYPE: content_type})
         if headers:
@@ -179,13 +174,10 @@ class RequestMatch(object):
         for hdr in _headers.getall(hdrs.SET_COOKIE, ()):
             resp.cookies.load(hdr)
 
-        if AIOHTTP_VERSION >= parse_version('3.3.0'):
-            # Reified attributes
-            resp._headers = _headers
-            resp._raw_headers = raw_headers
-        else:
-            resp.headers = _headers
-            resp.raw_headers = raw_headers
+        # Reified attributes
+        resp._headers = _headers
+        resp._raw_headers = raw_headers
+
         resp.status = status
         resp.reason = reason
         resp.content = stream_reader_factory(loop)
@@ -221,6 +213,9 @@ class RequestMatch(object):
             reason=result.reason)
         return resp
 
+    def __repr__(self) -> str:
+        return f"RequestMatch('{self.url_or_pattern}')"
+
 
 RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
 
@@ -228,12 +223,13 @@ RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
     _matches = None  # type: Dict[str, RequestMatch]
-    _responses = None  # type: List[ClientResponse]
+    _responses: List[ClientResponse] = None
     requests = None  # type: Dict
 
     def __init__(self, **kwargs: Any):
         self._param = kwargs.pop('param', None)
         self._passthrough = kwargs.pop('passthrough', [])
+        self.passthrough_unmatched = kwargs.pop('passthrough_unmatched', False)
         self.patcher = patch('aiohttp.client.ClientSession._request',
                              side_effect=self._request_mock,
                              autospec=True)
@@ -313,7 +309,7 @@ class aioresponses(object):
             payload: Optional[Dict] = None,
             headers: Optional[Dict] = None,
             response_class: Optional[Type[ClientResponse]] = None,
-            repeat: bool = False,
+            repeat: Union[bool, int] = False,
             timeout: bool = False,
             reason: Optional[str] = None,
             callback: Optional[Callable] = None) -> None:
@@ -469,8 +465,13 @@ class aioresponses(object):
             else:
                 return None
 
-            if matcher.repeat is False:
-                del self._matches[key]
+            if isinstance(matcher.repeat, bool):
+                if not matcher.repeat:
+                    del self._matches[key]
+            else:
+                if matcher.repeat == 1:
+                    del self._matches[key]
+                matcher.repeat -= 1
 
             if self.is_exception(response_or_exc):
                 raise response_or_exc
@@ -504,7 +505,16 @@ class aioresponses(object):
         if orig_self.closed:
             raise RuntimeError('Session is closed')
 
-        url_origin = url
+        if AIOHTTP_VERSION >= Version('3.8.0'):
+            # Join url with ClientSession._base_url
+            url = orig_self._build_url(url)
+            url_origin = str(url)
+            # Combine ClientSession headers with passed headers
+            if orig_self.headers:
+                kwargs["headers"] = orig_self._prepare_headers(kwargs.get("headers"))
+        else:
+            url_origin = url
+
         url = normalize_url(merge_params(url, kwargs.get('params')))
         url_str = str(url)
         for prefix in self._passthrough:
@@ -521,6 +531,10 @@ class aioresponses(object):
         response = await self.match(method, url, **kwargs)
 
         if response is None:
+            if self.passthrough_unmatched:
+                return (await self.patcher.temp_original(
+                    orig_self, method, url_origin, *args, **kwargs
+                ))
             raise ClientConnectionError(
                 'Connection refused: {} {}'.format(method, url)
             )
@@ -536,7 +550,10 @@ class aioresponses(object):
             raise_for_status = getattr(
                 orig_self, '_raise_for_status', False
             )
-        if raise_for_status:
+
+        if callable(raise_for_status):
+            await raise_for_status(response)
+        elif raise_for_status:
             response.raise_for_status()
 
         return response
