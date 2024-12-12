@@ -40,7 +40,7 @@ def merge_params(
 def normalize_url(url: 'Union[URL, str]') -> 'URL':
     """Normalize url to make comparisons."""
     url = URL(url)
-    return url.with_query(urlencode(sorted(parse_qsl(url.query_string))))
+    return url.with_query(sorted(url.query.items()))
 
 
 try:
