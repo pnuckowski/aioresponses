@@ -86,6 +86,7 @@ class AIOResponsesTestCase(AsyncTestCase):
         ("http://example.com/", "/api?foo=bar#fragment")
     )
     @aioresponses()
+    @skipIf(condition=AIOHTTP_VERSION < Version('3.8.0'), reason='aiohttp must be >= 3.8.0')
     async def test_base_url(self, base_url, relative_url, m):
         m.get(self.url, status=200)
         self.session = ClientSession(base_url=base_url)
@@ -93,6 +94,7 @@ class AIOResponsesTestCase(AsyncTestCase):
         self.assertEqual(response.status, 200)
 
     @aioresponses()
+    @skipIf(condition=AIOHTTP_VERSION < Version('3.8.0'), reason='aiohttp must be >= 3.8.0')
     async def test_session_headers(self, m):
         m.get(self.url)
         self.session = ClientSession(headers={"Authorization": "Bearer foobar"})

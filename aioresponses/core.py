@@ -29,6 +29,7 @@ from aiohttp import (
 )
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDict, CIMultiDictProxy
+from packaging.version import Version
 
 from .compat import (
     URL,
@@ -36,9 +37,8 @@ from .compat import (
     stream_reader_factory,
     merge_params,
     normalize_url,
-    RequestInfo,
+    RequestInfo, AIOHTTP_VERSION,
 )
-
 
 _FuncT = TypeVar("_FuncT", bound=Callable[..., Any])
 
@@ -223,7 +223,7 @@ RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
     _matches = None  # type: Dict[str, RequestMatch]
-    _responses = None  # type: List[ClientResponse]
+    _responses: List[ClientResponse] = None
     requests = None  # type: Dict
 
     def __init__(self, **kwargs: Any):
@@ -500,13 +500,15 @@ class aioresponses(object):
         if orig_self.closed:
             raise RuntimeError('Session is closed')
 
-        # Join url with ClientSession._base_url
-        url = orig_self._build_url(url)
-        url_origin = str(url)
-
-        # Combine ClientSession headers with passed headers
-        if orig_self.headers:
-            kwargs["headers"] = orig_self._prepare_headers(kwargs.get("headers"))
+        if AIOHTTP_VERSION >= Version('3.8.0'):
+            # Join url with ClientSession._base_url
+            url = orig_self._build_url(url)
+            url_origin = str(url)
+            # Combine ClientSession headers with passed headers
+            if orig_self.headers:
+                kwargs["headers"] = orig_self._prepare_headers(kwargs.get("headers"))
+        else:
+            url_origin = url
 
         url = normalize_url(merge_params(url, kwargs.get('params')))
         url_str = str(url)
