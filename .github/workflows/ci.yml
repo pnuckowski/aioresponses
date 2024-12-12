@@ -23,9 +23,6 @@ jobs:
       matrix:
         include:
           - python-minor-version: 7
-            aiohttp-version: aiohttp33
-            os: ubuntu-latest
-          - python-minor-version: 7
             aiohttp-version: aiohttp34
             os: ubuntu-latest
           - python-minor-version: 7
@@ -41,9 +38,6 @@ jobs:
             aiohttp-version: aiohttp38
             os: ubuntu-latest
 
-          - python-minor-version: 8
-            aiohttp-version: aiohttp33
-            os: ubuntu-latest
           - python-minor-version: 8
             aiohttp-version: aiohttp34
             os: ubuntu-latest
@@ -83,6 +77,20 @@ jobs:
           - python-minor-version: 11
             aiohttp-version: aiohttp38
             os: ubuntu-latest
+
+          - python-minor-version: 12
+            aiohttp-version: aiohttp38
+            os: ubuntu-latest
+          - python-minor-version: 12
+            aiohttp-version: aiohttp39
+            os: ubuntu-latest
+          - python-minor-version: 12
+            aiohttp-version: aiohttp310
+            os: ubuntu-latest
+          - python-minor-version: 12
+            aiohttp-version: aiohttp311
+            os: ubuntu-latest
+
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
