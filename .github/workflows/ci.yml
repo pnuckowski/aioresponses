@@ -77,16 +77,16 @@ jobs:
           - python-minor-version: 11
             aiohttp-version: aiohttp38
             os: ubuntu-latest
-
-          - python-minor-version: 12
-            aiohttp-version: aiohttp38
-            os: ubuntu-latest
-          - python-minor-version: 12
+          - python-minor-version: 11
             aiohttp-version: aiohttp39
             os: ubuntu-latest
-          - python-minor-version: 12
+          - python-minor-version: 11
             aiohttp-version: aiohttp310
             os: ubuntu-latest
+          - python-minor-version: 11
+            aiohttp-version: aiohttp311
+            os: ubuntu-latest
+
           - python-minor-version: 12
             aiohttp-version: aiohttp311
             os: ubuntu-latest
