@@ -502,6 +502,16 @@ class aioresponses(object):
                             *args: Tuple,
                             **kwargs: Any) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
+        data = kwargs.get('data', None)
+        if data is not None and hasattr(data, "__aiter__"):
+            try:
+                body_bytes = b""
+                async for chunk in data:
+                    body_bytes += chunk
+                kwargs['data'] = body_bytes
+            except Exception:
+                raise
+
         if orig_self.closed:
             raise RuntimeError('Session is closed')
 
