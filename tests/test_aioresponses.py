@@ -11,6 +11,7 @@ from aiohttp import http
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 from ddt import ddt, data, unpack
+from multidict import CIMultiDict
 from packaging.version import Version
 
 try:
@@ -116,6 +117,19 @@ class AIOResponsesTestCase(AsyncTestCase):
 
         self.assertEqual(response.headers['Connection'], 'keep-alive')
         self.assertEqual(response.headers[hdrs.CONTENT_TYPE], 'text/html')
+
+    @aioresponses()
+    async def test_returned_response_multidict_headers(self, m):
+        header_name = 'x-custom-header'
+        header_values = ['foo', 'bar']
+        m.get(
+            self.url,
+            content_type='text/html',
+            headers=CIMultiDict([(header_name, value) for value in header_values]),
+        )
+        response = await self.session.get(self.url)
+
+        self.assertListEqual(response.headers.getall(header_name), header_values)
 
     @aioresponses()
     async def test_returned_response_cookies(self, m):
