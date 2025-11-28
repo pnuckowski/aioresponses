@@ -64,7 +64,8 @@ class CallbackResult:
 
 
 class RequestMatch(object):
-    url_or_pattern = None  # type: Union[URL, Pattern]
+    # type:ignore[assignment]
+    url_or_pattern: Union[URL, Pattern] = None
 
     def __init__(self, url: Union[URL, str, Pattern],
                  method: str = hdrs.METH_GET,
@@ -150,7 +151,7 @@ class RequestMatch(object):
         loop = Mock()
         loop.get_debug = Mock()
         loop.get_debug.return_value = True
-        kwargs = {}  # type: Dict[str, Any]
+        kwargs: Dict[str, Any] = {}
         kwargs['request_info'] = RequestInfo(
             url=url,
             method=method,
@@ -222,9 +223,11 @@ RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
 
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
-    _matches = None  # type: Dict[str, RequestMatch]
+    # type:ignore[assignment]
+    _matches: Dict[str, RequestMatch] = None
     _responses: List[ClientResponse] = None
-    requests = None  # type: Dict
+    # type:ignore[assignment]
+    requests: Dict[Tuple[str, URL], List[RequestCall]] = None
 
     def __init__(self, **kwargs: Any):
         self._param = kwargs.pop('param', None)
