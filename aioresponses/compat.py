@@ -1,5 +1,4 @@
 import asyncio
-from urllib.parse import parse_qsl, urlencode
 
 from aiohttp import StreamReader
 from aiohttp.client_proto import ResponseHandler
@@ -26,7 +25,7 @@ def merge_params(url: URL | str, params: dict | None = None) -> URL:
 def normalize_url(url: URL | str) -> URL:
     """Normalize url to make comparisons."""
     url = URL(url)
-    return url.with_query(urlencode(sorted(parse_qsl(url.query_string))))
+    return url.with_query(sorted(url.query.items()))
 
 
 __all__ = [
