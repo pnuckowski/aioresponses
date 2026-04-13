@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
+from itertools import product
 from typing import Union
 
-import pytest
+from ddt import ddt, data, unpack
 from yarl import URL
 
 from aioresponses.compat import merge_params, normalize_url
-
-URL_WITH_PARAMS = 'http://example.com/api?foo=bar#fragment'
-URL_WITHOUT_PARAMS = 'http://example.com/api?#fragment'
 
 
 def get_url(url: str, as_str: bool) -> Union[URL, str]:
@@ -86,4 +84,3 @@ def test_normalize_url(original_url, expected_url, as_str):
     received_url = normalize_url(original_url)
     assert isinstance(received_url, URL)
     assert expected_url == str(received_url)
-
