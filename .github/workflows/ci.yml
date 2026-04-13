@@ -24,6 +24,29 @@ jobs:
         os: [ubuntu-latest]
         python-minor-version: [10, 11, 12, 13, 14]
         aiohttp-version: [aiohttp38, aiohttp39, aiohttp310, aiohttp311, aiohttp312, aiohttp313]
+        exclude:
+          # aiohttp 3.8 supports Python up to 3.10
+          - aiohttp-version: aiohttp38
+            python-minor-version: 11
+          - aiohttp-version: aiohttp38
+            python-minor-version: 12
+          - aiohttp-version: aiohttp38
+            python-minor-version: 13
+          - aiohttp-version: aiohttp38
+            python-minor-version: 14
+          # aiohttp 3.9 supports Python up to 3.12
+          - aiohttp-version: aiohttp39
+            python-minor-version: 13
+          - aiohttp-version: aiohttp39
+            python-minor-version: 14
+          # aiohttp 3.10-3.12 supports Python up to 3.13
+          - aiohttp-version: aiohttp310
+            python-minor-version: 14
+          - aiohttp-version: aiohttp311
+            python-minor-version: 14
+          - aiohttp-version: aiohttp312
+            python-minor-version: 14
+          # aiohttp 3.13 supports Python 3.10-3.14 (no excludes)
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
