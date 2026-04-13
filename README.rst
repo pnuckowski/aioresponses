@@ -2,26 +2,12 @@
 aioresponses
 ===============================
 
-.. image:: https://travis-ci.org/pnuckowski/aioresponses.svg?branch=master
-        :target: https://travis-ci.org/pnuckowski/aioresponses
-
-.. image:: https://coveralls.io/repos/github/pnuckowski/aioresponses/badge.svg?branch=master
-        :target: https://coveralls.io/github/pnuckowski/aioresponses?branch=master
-
-.. image:: https://landscape.io/github/pnuckowski/aioresponses/master/landscape.svg?style=flat
-        :target: https://landscape.io/github/pnuckowski/aioresponses/master
-        :alt: Code Health
-
-.. image:: https://pyup.io/repos/github/pnuckowski/aioresponses/shield.svg
-        :target: https://pyup.io/repos/github/pnuckowski/aioresponses/
-        :alt: Updates
-
 .. image:: https://img.shields.io/pypi/v/aioresponses.svg
         :target: https://pypi.python.org/pypi/aioresponses
 
-.. image:: https://readthedocs.org/projects/aioresponses/badge/?version=latest
-        :target: https://aioresponses.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
+.. image:: https://github.com/pnuckowski/aioresponses/actions/workflows/ci.yml/badge.svg
+        :target: https://github.com/pnuckowski/aioresponses/actions/workflows/ci.yml
+        :alt: CI
 
 
 Aioresponses is a helper to mock/fake web requests in python aiohttp package.
@@ -40,8 +26,8 @@ Installing
 
 Supported versions
 ------------------
-- Python 3.7+
-- aiohttp>=3.3.0,<4.0.0
+- Python 3.10+
+- aiohttp>=3.8,<4.0
 
 Usage
 --------
