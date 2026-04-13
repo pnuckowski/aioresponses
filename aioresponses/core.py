@@ -13,6 +13,7 @@ from typing import (
     Dict,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
@@ -404,7 +405,7 @@ class aioresponses(object):
 
     def assert_called_with(self, url: 'Union[URL, str, Pattern]',
                            method: str = hdrs.METH_GET,
-                           args_to_match: Optional[Tuple] = None,
+                           args_to_match: Optional[Sequence[str]] = None,
                            *args: Any,
                            **kwargs: Any):
         """Assert that the last call was made with the specified arguments."""
