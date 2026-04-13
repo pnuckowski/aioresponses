@@ -21,18 +21,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-
-          - python-minor-version: 10
-            aiohttp-version: aiohttp37
-            os: ubuntu-latest
-          - python-minor-version: 10
-            aiohttp-version: aiohttp38
-            os: ubuntu-latest
-
-          - python-minor-version: 11
-            aiohttp-version: aiohttp38
-            os: ubuntu-latest
+        os: [ubuntu-latest]
+        python-minor-version: [10, 11, 12, 13, 14]
+        aiohttp-version: [aiohttp38, aiohttp39, aiohttp310, aiohttp311, aiohttp312, aiohttp313]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
@@ -46,7 +37,7 @@ jobs:
         pip install tox
     - name: Run Tests
       run: |
-        tox -e py${{ env.python-major-version }}${{ matrix.python-version }}-${{ matrix.aiohttp-version }}
+        tox -e py${{ env.python-major-version }}${{ matrix.python-minor-version }}-${{ matrix.aiohttp-version }}
     - uses: codecov/codecov-action@v2
       with:
         file: coverage.xml
