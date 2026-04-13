@@ -403,11 +403,13 @@ class aioresponses(object):
 
             raise AssertionError(msg)
 
-    def assert_called_with(self, url: 'Union[URL, str, Pattern]',
-                           method: str = hdrs.METH_GET,
-                           args_to_match: Optional[Sequence[str]] = None,
-                           *args: Any,
-                           **kwargs: Any):
+    def assert_called_with(
+        self, url: 'Union[URL, str, Pattern]',
+        method: str = hdrs.METH_GET,
+        *args: Any,
+        args_to_match: Optional[Sequence[str]] = None,
+        **kwargs: Any
+    ):
         """Assert that the last call was made with the specified arguments."""
 
         url = normalize_url(merge_params(url, kwargs.get('params')))

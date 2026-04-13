@@ -284,7 +284,41 @@ E.g. for cases where you want to test retrying mechanisms.
         assert resp.status == 418
 
 
-**aioresponses can be used in a pytest fixture**
+**aioresponses can be used with pytest**
+
+aioresponses ships with a built-in pytest plugin. After installing the package,
+the ``aioresponse`` fixture is available **automatically** — no extra
+configuration needed.
+
+The fixture is a factory: call it to get a configured mock instance.
+
+.. code:: python
+
+    import aiohttp
+
+    async def test_get(aioresponse):
+        m = aioresponse()
+        m.get("http://example.com", status=200)
+
+        async with aiohttp.ClientSession() as session:
+            resp = await session.get("http://example.com")
+
+        assert resp.status == 200
+
+Pass keyword arguments to configure the mock behaviour:
+
+.. code:: python
+
+    async def test_passthrough_unmatched(aioresponse):
+        m = aioresponse(passthrough_unmatched=True)
+        m.get("http://example.com/mocked", status=200)
+        # unmatched requests are forwarded to the real server
+
+    async def test_passthrough_list(aioresponse):
+        m = aioresponse(passthrough=["http://real-backend"])
+        m.get("http://example.com/mocked", status=200)
+
+You can also define your own fixture when you need custom defaults:
 
 .. code:: python
 
@@ -295,6 +329,27 @@ E.g. for cases where you want to test retrying mechanisms.
     def mock_aioresponse():
         with aioresponses() as m:
             yield m
+
+
+**aioresponses can be used with unittest**
+
+.. code:: python
+
+    import asyncio
+    import unittest
+    from aiohttp import ClientSession
+    from aioresponses import aioresponses
+
+    class MyTestCase(unittest.TestCase):
+        @aioresponses()
+        def test_request(self, mocked):
+            mocked.get('http://example.com', status=200)
+
+            loop = asyncio.get_event_loop()
+            session = ClientSession()
+            response = loop.run_until_complete(session.get('http://example.com'))
+
+            self.assertEqual(response.status, 200)
 
 
 Features
