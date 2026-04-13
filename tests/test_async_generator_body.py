@@ -1,7 +1,8 @@
 import pytest
-import asyncio
 from aiohttp import ClientSession
+
 from aioresponses import aioresponses
+
 
 @pytest.mark.asyncio
 async def test_async_generator_body_exception():
