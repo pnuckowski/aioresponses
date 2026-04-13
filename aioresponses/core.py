@@ -94,7 +94,9 @@ class RequestMatch(object):
         self.exception = exception
         if timeout:
             self.exception = asyncio.TimeoutError('Connection timeout test')
-        if isinstance(headers, dict):
+        if headers is None:
+            self.headers = CIMultiDict()
+        elif isinstance(headers, dict):
             self.headers = CIMultiDict(headers)
         else:
             self.headers = headers
