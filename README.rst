@@ -32,7 +32,8 @@ Supported versions
 Usage
 --------
 
-To mock out HTTP request use *aioresponses* as a method decorator or as a context manager.
+To mock out HTTP requests in pytest, use the built-in ``aioresponse`` fixture.
+The classic decorator and context manager styles are still supported as well.
 
 Response *status* code, *body*, *payload* (for json response) and *headers* can be mocked.
 
@@ -41,15 +42,15 @@ Supported HTTP methods: **GET**, **POST**, **PUT**, **PATCH**, **DELETE** and **
 .. code:: python
 
     import aiohttp
-    import asyncio
-    from aioresponses import aioresponses
+    import pytest
 
-    @aioresponses()
-    def test_request(mocked):
-        loop = asyncio.get_event_loop()
+    @pytest.mark.asyncio
+    async def test_request(aioresponse):
+        mocked = aioresponse()
         mocked.get('http://example.com', status=200, body='test')
-        session = aiohttp.ClientSession()
-        resp = loop.run_until_complete(session.get('http://example.com'))
+
+        async with aiohttp.ClientSession() as session:
+            resp = await session.get('http://example.com')
 
         assert resp.status == 200
         mocked.assert_called_once_with('http://example.com')
@@ -61,18 +62,18 @@ for convenience use *payload* argument to mock out json response. Example below.
 
 .. code:: python
 
-    import asyncio
     import aiohttp
+    import pytest
     from aioresponses import aioresponses
 
-    def test_ctx():
-        loop = asyncio.get_event_loop()
-        session = aiohttp.ClientSession()
+    @pytest.mark.asyncio
+    async def test_ctx():
         with aioresponses() as m:
             m.get('http://test.example.com', payload=dict(foo='bar'))
 
-            resp = loop.run_until_complete(session.get('http://test.example.com'))
-            data = loop.run_until_complete(resp.json())
+            async with aiohttp.ClientSession() as session:
+                resp = await session.get('http://test.example.com')
+                data = await resp.json()
 
             assert dict(foo='bar') == data
             m.assert_called_once_with('http://test.example.com')
@@ -81,44 +82,42 @@ for convenience use *payload* argument to mock out json response. Example below.
 
 .. code:: python
 
-    import asyncio
     import aiohttp
-    from aioresponses import aioresponses
+    import pytest
 
-    @aioresponses()
-    def test_http_headers(m):
-        loop = asyncio.get_event_loop()
-        session = aiohttp.ClientSession()
-        m.post(
+    @pytest.mark.asyncio
+    async def test_http_headers(aioresponse):
+        mocked = aioresponse()
+        mocked.post(
             'http://example.com',
             payload=dict(),
             headers=dict(connection='keep-alive'),
         )
 
-        resp = loop.run_until_complete(session.post('http://example.com'))
+        async with aiohttp.ClientSession() as session:
+            resp = await session.post('http://example.com')
 
         # note that we pass 'connection' but get 'Connection' (capitalized)
         # under the neath `multidict` is used to work with HTTP headers
         assert resp.headers['Connection'] == 'keep-alive'
-        m.assert_called_once_with('http://example.com', method='POST')
+        mocked.assert_called_once_with('http://example.com', method='POST')
 
 **allows to register different responses for the same url**
 
 .. code:: python
 
-    import asyncio
     import aiohttp
-    from aioresponses import aioresponses
+    import pytest
 
-    @aioresponses()
-    def test_multiple_responses(m):
-        loop = asyncio.get_event_loop()
-        session = aiohttp.ClientSession()
-        m.get('http://example.com', status=500)
-        m.get('http://example.com', status=200)
+    @pytest.mark.asyncio
+    async def test_multiple_responses(aioresponse):
+        mocked = aioresponse()
+        mocked.get('http://example.com', status=500)
+        mocked.get('http://example.com', status=200)
 
-        resp1 = loop.run_until_complete(session.get('http://example.com'))
-        resp2 = loop.run_until_complete(session.get('http://example.com'))
+        async with aiohttp.ClientSession() as session:
+            resp1 = await session.get('http://example.com')
+            resp2 = await session.get('http://example.com')
 
         assert resp1.status == 500
         assert resp2.status == 200
@@ -134,20 +133,19 @@ E.g. for cases where you want to test retrying mechanisms.
 
 .. code:: python
 
-    import asyncio
     import aiohttp
-    from aioresponses import aioresponses
+    import pytest
 
-    @aioresponses()
-    def test_multiple_responses(m):
-        loop = asyncio.get_event_loop()
-        session = aiohttp.ClientSession()
-        m.get('http://example.com', status=500, repeat=2)
-        m.get('http://example.com', status=200)  # will take effect after two preceding calls
+    @pytest.mark.asyncio
+    async def test_multiple_responses(aioresponse):
+        mocked = aioresponse()
+        mocked.get('http://example.com', status=500, repeat=2)
+        mocked.get('http://example.com', status=200)  # will take effect after two preceding calls
 
-        resp1 = loop.run_until_complete(session.get('http://example.com'))
-        resp2 = loop.run_until_complete(session.get('http://example.com'))
-        resp3 = loop.run_until_complete(session.get('http://example.com'))
+        async with aiohttp.ClientSession() as session:
+            resp1 = await session.get('http://example.com')
+            resp2 = await session.get('http://example.com')
+            resp3 = await session.get('http://example.com')
 
         assert resp1.status == 500
         assert resp2.status == 500
@@ -158,19 +156,18 @@ E.g. for cases where you want to test retrying mechanisms.
 
 .. code:: python
 
-    import asyncio
     import aiohttp
     import re
-    from aioresponses import aioresponses
+    import pytest
 
-    @aioresponses()
-    def test_regexp_example(m):
-        loop = asyncio.get_event_loop()
-        session = aiohttp.ClientSession()
+    @pytest.mark.asyncio
+    async def test_regexp_example(aioresponse):
+        mocked = aioresponse()
         pattern = re.compile(r'^http://example\.com/api\?foo=.*$')
-        m.get(pattern, status=200)
+        mocked.get(pattern, status=200)
 
-        resp = loop.run_until_complete(session.get('http://example.com/api?foo=bar'))
+        async with aiohttp.ClientSession() as session:
+            resp = await session.get('http://example.com/api?foo=bar')
 
         assert resp.status == 200
 
@@ -178,113 +175,158 @@ E.g. for cases where you want to test retrying mechanisms.
 
 .. code:: python
 
-    import asyncio
     import aiohttp
-    from aioresponses import aioresponses
+    import pytest
 
-    @aioresponses()
-    def test_redirect_example(m):
-        loop = asyncio.get_event_loop()
-        session = aiohttp.ClientSession()
+    @pytest.mark.asyncio
+    async def test_redirect_example(aioresponse):
+        mocked = aioresponse()
 
         # absolute urls are supported
-        m.get(
+        mocked.get(
             'http://example.com/',
             headers={'Location': 'http://another.com/'},
             status=307
         )
+        mocked.get('http://another.com/', status=200)
 
-        resp = loop.run_until_complete(
-            session.get('http://example.com/', allow_redirects=True)
-        )
+        async with aiohttp.ClientSession() as session:
+            resp = await session.get('http://example.com/', allow_redirects=True)
         assert resp.url == 'http://another.com/'
 
         # and also relative
-        m.get(
+        mocked.get(
             'http://example.com/',
             headers={'Location': '/test'},
             status=307
         )
-        resp = loop.run_until_complete(
-            session.get('http://example.com/', allow_redirects=True)
-        )
+        mocked.get('http://example.com/test', status=200)
+
+        async with aiohttp.ClientSession() as session:
+            resp = await session.get('http://example.com/', allow_redirects=True)
         assert resp.url == 'http://example.com/test'
 
 **allows to passthrough to a specified list of servers**
 
 .. code:: python
 
-    import asyncio
     import aiohttp
-    from aioresponses import aioresponses
+    import pytest
 
-    @aioresponses(passthrough=['http://backend'])
-    def test_passthrough(m, test_client):
-        session = aiohttp.ClientSession()
+    @pytest.mark.asyncio
+    async def test_passthrough(aioresponse):
+        mocked = aioresponse(passthrough=['http://backend'])
+        mocked.get('http://example.com/api', status=200)
+
+        async with aiohttp.ClientSession() as session:
+            mocked_resp = await session.get('http://example.com/api')
         # this will actually perform a request
-        resp = loop.run_until_complete(session.get('http://backend/api'))
+            resp = await session.get('http://backend/api')
+
+        assert mocked_resp.status == 200
 
 **also you can passthrough all requests except specified by mocking object**
 
 .. code:: python
 
-    import asyncio
     import aiohttp
-    from aioresponses import aioresponses
+    import pytest
 
-    @aioresponses(passthrough_unmatched=True)
-    def test_passthrough_unmatched(m, test_client):
+    @pytest.mark.asyncio
+    async def test_passthrough_unmatched(aioresponse):
         url = 'https://httpbin.org/get'
-        m.get(url, status=200)
-        session = aiohttp.ClientSession()
+        mocked = aioresponse(passthrough_unmatched=True)
+        mocked.get(url, status=200)
         # this will actually perform a request
-        resp = loop.run_until_complete(session.get('http://backend/api'))
+        async with aiohttp.ClientSession() as session:
+            resp = await session.get('http://backend/api')
         # this will not perform a request and resp2.status will return 200
-        resp2 = loop.run_until_complete(session.get(url))
+            resp2 = await session.get(url)
+
+        assert resp.status == 200
+        assert resp2.status == 200
 
 **aioresponses allows to throw an exception**
 
 .. code:: python
 
-    import asyncio
+    import pytest
     from aiohttp import ClientSession
     from aiohttp.http_exceptions import HttpProcessingError
-    from aioresponses import aioresponses
 
-    @aioresponses()
-    def test_how_to_throw_an_exception(m, test_client):
-        loop = asyncio.get_event_loop()
-        session = ClientSession()
-        m.get('http://example.com/api', exception=HttpProcessingError('test'))
+    @pytest.mark.asyncio
+    async def test_how_to_throw_an_exception(aioresponse):
+        mocked = aioresponse()
+        mocked.get('http://example.com/api', exception=HttpProcessingError('test'))
 
-        # calling
-        # loop.run_until_complete(session.get('http://example.com/api'))
-        # will throw an exception.
+        async with ClientSession() as session:
+            with pytest.raises(HttpProcessingError):
+                await session.get('http://example.com/api')
 
 
 **aioresponses allows to use callbacks to provide dynamic responses**
 
 .. code:: python
 
-    import asyncio
     import aiohttp
-    from aioresponses import CallbackResult, aioresponses
+    import pytest
+    from aioresponses import CallbackResult
 
     def callback(url, **kwargs):
         return CallbackResult(status=418)
 
-    @aioresponses()
-    def test_callback(m, test_client):
-        loop = asyncio.get_event_loop()
-        session = ClientSession()
-        m.get('http://example.com', callback=callback)
+    @pytest.mark.asyncio
+    async def test_callback(aioresponse):
+        mocked = aioresponse()
+        mocked.get('http://example.com', callback=callback)
 
-        resp = loop.run_until_complete(session.get('http://example.com'))
+        async with aiohttp.ClientSession() as session:
+            resp = await session.get('http://example.com')
 
         assert resp.status == 418
 
 
-**aioresponses can be used in a pytest fixture**
+**aioresponses can be used with pytest**
+
+aioresponses ships with a built-in pytest plugin. After installing the package,
+the ``aioresponse`` fixture is available **automatically** — no extra
+configuration needed. To run ``async def`` tests, install ``pytest-asyncio`` as well.
+
+The fixture is a factory: call it to get a configured mock instance.
+
+.. code:: python
+
+    import aiohttp
+    import pytest
+
+    @pytest.mark.asyncio
+    async def test_get(aioresponse):
+        m = aioresponse()
+        m.get("http://example.com", status=200)
+
+        async with aiohttp.ClientSession() as session:
+            resp = await session.get("http://example.com")
+
+        assert resp.status == 200
+
+Pass keyword arguments to configure the mock behaviour:
+
+.. code:: python
+
+    import pytest
+
+    @pytest.mark.asyncio
+    async def test_passthrough_unmatched(aioresponse):
+        m = aioresponse(passthrough_unmatched=True)
+        m.get("http://example.com/mocked", status=200)
+        # unmatched requests are forwarded to the real server
+
+    @pytest.mark.asyncio
+    async def test_passthrough_list(aioresponse):
+        m = aioresponse(passthrough=["http://real-backend"])
+        m.get("http://example.com/mocked", status=200)
+
+You can also define your own fixture when you need custom defaults:
 
 .. code:: python
 
@@ -295,6 +337,29 @@ E.g. for cases where you want to test retrying mechanisms.
     def mock_aioresponse():
         with aioresponses() as m:
             yield m
+
+
+**aioresponses can be used with unittest**
+
+.. code:: python
+
+    import asyncio
+    import unittest
+    from aiohttp import ClientSession
+    from aioresponses import aioresponses
+
+    class MyTestCase(unittest.TestCase):
+        @aioresponses()
+        def test_request(self, mocked):
+            mocked.get('http://example.com', status=200)
+
+            loop = asyncio.get_event_loop()
+            async def run():
+                async with ClientSession() as session:
+                    response = await session.get('http://example.com')
+                    self.assertEqual(response.status, 200)
+
+            loop.run_until_complete(run())
 
 
 Features
