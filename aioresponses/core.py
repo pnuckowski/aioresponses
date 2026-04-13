@@ -4,6 +4,7 @@ import copy
 import inspect
 import json
 from collections import namedtuple
+from collections.abc import Mapping
 from functools import wraps
 from typing import (
     Any,
@@ -12,10 +13,11 @@ from typing import (
     Dict,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
-    Union,
+    Union, Set,
 )
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -25,10 +27,12 @@ from aiohttp import (
     ClientResponse,
     ClientSession,
     hdrs,
-    http
+    http,
+    RequestInfo,
+    typedefs
 )
 from aiohttp.helpers import TimerNoop
-from multidict import CIMultiDict, CIMultiDictProxy
+from multidict import CIMultiDict, CIMultiDictProxy, MultiDictProxy, MultiDict
 from packaging.version import Version
 
 from .compat import (
@@ -37,7 +41,7 @@ from .compat import (
     stream_reader_factory,
     merge_params,
     normalize_url,
-    RequestInfo, AIOHTTP_VERSION,
+    AIOHTTP_VERSION,
 )
 
 _FuncT = TypeVar("_FuncT", bound=Callable[..., Any])
@@ -64,7 +68,8 @@ class CallbackResult:
 
 
 class RequestMatch(object):
-    url_or_pattern = None  # type: Union[URL, Pattern]
+    # type:ignore[assignment]
+    url_or_pattern: Union[URL, Pattern] = None
 
     def __init__(self, url: Union[URL, str, Pattern],
                  method: str = hdrs.METH_GET,
@@ -72,7 +77,7 @@ class RequestMatch(object):
                  body: Union[str, bytes] = '',
                  payload: Optional[Dict] = None,
                  exception: Optional[Exception] = None,
-                 headers: Optional[Dict] = None,
+                 headers: Optional[Union[CIMultiDict, dict]] = None,
                  content_type: str = 'application/json',
                  response_class: Optional[Type[ClientResponse]] = None,
                  timeout: bool = False,
@@ -92,7 +97,12 @@ class RequestMatch(object):
         self.exception = exception
         if timeout:
             self.exception = asyncio.TimeoutError('Connection timeout test')
-        self.headers = headers
+        if headers is None:
+            self.headers = CIMultiDict()
+        elif isinstance(headers, dict):
+            self.headers = CIMultiDict(headers)
+        else:
+            self.headers = headers
         self.content_type = content_type
         self.response_class = response_class
         self.repeat = repeat
@@ -118,9 +128,9 @@ class RequestMatch(object):
             return False
         return self.match_func(url)
 
-    def _build_raw_headers(self, headers: Dict) -> Tuple:
+    def _build_raw_headers(self, headers: Mapping[str, str]) -> Tuple:
         """
-        Convert a dict of headers to a tuple of tuples
+        Convert a multidict of headers to a tuple of tuples
 
         Mimics the format of ClientResponse.
         """
@@ -129,14 +139,29 @@ class RequestMatch(object):
             raw_headers.append((k.encode('utf8'), v.encode('utf8')))
         return tuple(raw_headers)
 
+    def _prepare_request_headers(self, headers: Optional[typedefs.LooseHeaders]) -> "CIMultiDict[str]":
+        """Convert headers from aiohttp _request method to CIMultiDict. Copy-pasted from aiohttp.client"""
+        result = CIMultiDict()
+        if headers:
+            if not isinstance(headers, (MultiDictProxy, MultiDict)):
+                headers = CIMultiDict(headers)
+            added_names: Set[str] = set()
+            for key, value in headers.items():
+                if key in added_names:
+                    result.add(key, value)
+                else:
+                    result[key] = value
+                    added_names.add(key)
+        return result
+
     def _build_response(self, url: 'Union[URL, str]',
                         method: str = hdrs.METH_GET,
-                        request_headers: Optional[Dict] = None,
+                        request_headers: Optional[typedefs.LooseHeaders] = None,
                         status: int = 200,
                         body: Union[str, bytes] = '',
                         content_type: str = 'application/json',
                         payload: Optional[Dict] = None,
-                        headers: Optional[Dict] = None,
+                        headers: Optional[CIMultiDict] = None,
                         response_class: Optional[Type[ClientResponse]] = None,
                         reason: Optional[str] = None) -> ClientResponse:
         if response_class is None:
@@ -146,15 +171,15 @@ class RequestMatch(object):
         if not isinstance(body, bytes):
             body = str.encode(body)
         if request_headers is None:
-            request_headers = {}
+            request_headers = CIMultiDict()
         loop = Mock()
         loop.get_debug = Mock()
         loop.get_debug.return_value = True
-        kwargs = {}  # type: Dict[str, Any]
+        kwargs: Dict[str, Any] = {}
         kwargs['request_info'] = RequestInfo(
             url=url,
             method=method,
-            headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
+            headers=CIMultiDictProxy(self._prepare_request_headers(request_headers)),
             real_url=url
         )
         kwargs['writer'] = None
@@ -189,7 +214,7 @@ class RequestMatch(object):
         self, url: URL, **kwargs: Any
     ) -> 'Union[ClientResponse, Exception]':
         if callable(self.callback):
-            if asyncio.iscoroutinefunction(self.callback):
+            if inspect.iscoroutinefunction(self.callback):
                 result = await self.callback(url, **kwargs)
             else:
                 result = self.callback(url, **kwargs)
@@ -222,9 +247,11 @@ RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
 
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
-    _matches = None  # type: Dict[str, RequestMatch]
+    # type:ignore[assignment]
+    _matches: Dict[str, RequestMatch] = None
     _responses: List[ClientResponse] = None
-    requests = None  # type: Dict
+    # type:ignore[assignment]
+    requests: Dict[Tuple[str, URL], List[RequestCall]] = None
 
     def __init__(self, **kwargs: Any):
         self._param = kwargs.pop('param', None)
@@ -250,7 +277,7 @@ class aioresponses(object):
                 args += (ctx,)
             return args, kwargs
 
-        if asyncio.iscoroutinefunction(f):
+        if inspect.iscoroutinefunction(f):
             @wraps(f)
             async def wrapped(*args, **kwargs):
                 with self as ctx:
@@ -307,7 +334,7 @@ class aioresponses(object):
             exception: Optional[Exception] = None,
             content_type: str = 'application/json',
             payload: Optional[Dict] = None,
-            headers: Optional[Dict] = None,
+            headers: Optional[Union[CIMultiDict, dict]] = None,
             response_class: Optional[Type[ClientResponse]] = None,
             repeat: Union[bool, int] = False,
             timeout: bool = False,
@@ -378,35 +405,29 @@ class aioresponses(object):
 
     def assert_called_with(self, url: 'Union[URL, str, Pattern]',
                            method: str = hdrs.METH_GET,
+                           args_to_match: Optional[Sequence[str]] = None,
                            *args: Any,
                            **kwargs: Any):
-        """assert that the last call was made with the specified arguments.
+        """Assert that the last call was made with the specified arguments."""
 
-        Raises an AssertionError if the args and keyword args passed in are
-        different to the last call to the mock."""
         url = normalize_url(merge_params(url, kwargs.get('params')))
         method = method.upper()
         key = (method, url)
-        try:
-            expected = self.requests[key][-1]
-        except KeyError:
-            expected_string = self._format_call_signature(
-                url, method=method, *args, **kwargs
-            )
-            raise AssertionError(
-                '%s call not found' % expected_string
-            )
-        actual = self._build_request_call(method, *args, **kwargs)
-        if not expected == actual:
-            expected_string = self._format_call_signature(
-                expected,
-            )
-            actual_string = self._format_call_signature(
-                actual
-            )
-            raise AssertionError(
-                '%s != %s' % (expected_string, actual_string)
-            )
+
+        if not self.requests.get(key):
+            raise AssertionError(f'{self._format_call_signature(url, method=method, *args, **kwargs)} call not found')
+
+        actual = self.requests[key][-1]
+        expected = self._build_request_call(method, *args, **kwargs)
+
+        if args_to_match is not None:
+            raise_error = any(
+                arg not in actual.kwargs or actual.kwargs[arg] != expected.kwargs[arg] for arg in args_to_match)
+        else:
+            raise_error = actual != expected
+
+        if raise_error:
+            raise AssertionError(f'{self._format_call_signature(actual)} != {self._format_call_signature(expected)}')
 
     def assert_any_call(self, url: 'Union[URL, str, Pattern]',
                         method: str = hdrs.METH_GET,
@@ -502,6 +523,13 @@ class aioresponses(object):
                             *args: Tuple,
                             **kwargs: Any) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
+        data = kwargs.get('data', None)
+        if data is not None and hasattr(data, "__aiter__"):
+            chunks = []
+            async for chunk in data:
+                chunks.append(chunk)
+            kwargs['data'] = b"".join(chunks)
+
         if orig_self.closed:
             raise RuntimeError('Session is closed')
 

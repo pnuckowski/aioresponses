@@ -11,6 +11,7 @@ from aiohttp import http
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 from ddt import ddt, data, unpack
+from multidict import CIMultiDict
 from packaging.version import Version
 
 try:
@@ -116,6 +117,19 @@ class AIOResponsesTestCase(AsyncTestCase):
 
         self.assertEqual(response.headers['Connection'], 'keep-alive')
         self.assertEqual(response.headers[hdrs.CONTENT_TYPE], 'text/html')
+
+    @aioresponses()
+    async def test_returned_response_multidict_headers(self, m):
+        header_name = 'x-custom-header'
+        header_values = ['foo', 'bar']
+        m.get(
+            self.url,
+            content_type='text/html',
+            headers=CIMultiDict([(header_name, value) for value in header_values]),
+        )
+        response = await self.session.get(self.url)
+
+        self.assertListEqual(response.headers.getall(header_name), header_values)
 
     @aioresponses()
     async def test_returned_response_cookies(self, m):
@@ -233,6 +247,62 @@ class AIOResponsesTestCase(AsyncTestCase):
                 method='POST',
                 data=payload,
                 headers={'User-Agent': 'aiorequest'}
+            )
+
+    @aioresponses()
+    def test_post_with_data_selected_field_to_compare(self, m: aioresponses):
+        body = {'foo': 'bar'}
+        payload = {'spam': 'eggs'}
+        user_agent = {'User-Agent': 'aioresponses'}
+        m.post(
+            self.url,
+            payload=payload,
+            headers=dict(connection='keep-alive'),
+            body=body,
+        )
+        response = self.run_async(
+            self.session.post(
+                self.url,
+                data=payload,
+                headers=user_agent
+            )
+        )
+        self.assertIsInstance(response, ClientResponse)
+        self.assertEqual(response.status, 200)
+        response_data = self.run_async(response.json())
+        self.assertEqual(response_data, payload)
+        m.assert_called_once_with(
+            self.url,
+            method='POST',
+            args_to_match=['data', 'headers'],
+            data=payload,
+            headers={'User-Agent': 'aioresponses'}
+        )
+        m.assert_called_once_with(
+            self.url,
+            method='POST',
+            args_to_match=['data'],
+            data=payload,
+        )
+        m.assert_called_once_with(
+            self.url,
+            method='POST',
+            args_to_match=['headers'],
+            headers={'User-Agent': 'aioresponses'}
+        )
+        m.assert_called_once_with(
+            self.url,
+            method='POST',
+            args_to_match=[],
+        )
+        # Wrong data
+        with self.assertRaises(AssertionError):
+            m.assert_called_once_with(
+                self.url,
+                method='POST',
+                args_to_match=['data', 'headers', 'body'],
+                data=body,
+                headers={'User-Agent': 'aioresponses'}
             )
 
     @aioresponses()
