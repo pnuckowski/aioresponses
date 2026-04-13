@@ -4,6 +4,7 @@ import copy
 import inspect
 import json
 from collections import namedtuple
+from collections.abc import Mapping
 from functools import wraps
 from typing import (
     Any,
@@ -15,7 +16,7 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
-    Union,
+    Union, Set,
 )
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -27,9 +28,10 @@ from aiohttp import (
     hdrs,
     http,
     RequestInfo,
+    typedefs
 )
 from aiohttp.helpers import TimerNoop
-from multidict import CIMultiDict, CIMultiDictProxy
+from multidict import CIMultiDict, CIMultiDictProxy, MultiDictProxy, MultiDict
 from packaging.version import Version
 
 from .compat import (
@@ -73,7 +75,7 @@ class RequestMatch(object):
                  body: Union[str, bytes] = '',
                  payload: Optional[Dict] = None,
                  exception: Optional[Exception] = None,
-                 headers: Optional[Dict] = None,
+                 headers: Optional[Union[CIMultiDict, dict]] = None,
                  content_type: str = 'application/json',
                  response_class: Optional[Type[ClientResponse]] = None,
                  timeout: bool = False,
@@ -93,7 +95,12 @@ class RequestMatch(object):
         self.exception = exception
         if timeout:
             self.exception = asyncio.TimeoutError('Connection timeout test')
-        self.headers = headers
+        if headers is None:
+            self.headers = CIMultiDict()
+        elif isinstance(headers, dict):
+            self.headers = CIMultiDict(headers)
+        else:
+            self.headers = headers
         self.content_type = content_type
         self.response_class = response_class
         self.repeat = repeat
@@ -119,9 +126,9 @@ class RequestMatch(object):
             return False
         return self.match_func(url)
 
-    def _build_raw_headers(self, headers: Dict) -> Tuple:
+    def _build_raw_headers(self, headers: Mapping[str, str]) -> Tuple:
         """
-        Convert a dict of headers to a tuple of tuples
+        Convert a multidict of headers to a tuple of tuples
 
         Mimics the format of ClientResponse.
         """
@@ -130,14 +137,29 @@ class RequestMatch(object):
             raw_headers.append((k.encode('utf8'), v.encode('utf8')))
         return tuple(raw_headers)
 
+    def _prepare_request_headers(self, headers: Optional[typedefs.LooseHeaders]) -> "CIMultiDict[str]":
+        """Convert headers from aiohttp _request method to CIMultiDict. Copy-pasted from aiohttp.client"""
+        result = CIMultiDict()
+        if headers:
+            if not isinstance(headers, (MultiDictProxy, MultiDict)):
+                headers = CIMultiDict(headers)
+            added_names: Set[str] = set()
+            for key, value in headers.items():
+                if key in added_names:
+                    result.add(key, value)
+                else:
+                    result[key] = value
+                    added_names.add(key)
+        return result
+
     def _build_response(self, url: 'Union[URL, str]',
                         method: str = hdrs.METH_GET,
-                        request_headers: Optional[Dict] = None,
+                        request_headers: Optional[typedefs.LooseHeaders] = None,
                         status: int = 200,
                         body: Union[str, bytes] = '',
                         content_type: str = 'application/json',
                         payload: Optional[Dict] = None,
-                        headers: Optional[Dict] = None,
+                        headers: Optional[CIMultiDict] = None,
                         response_class: Optional[Type[ClientResponse]] = None,
                         reason: Optional[str] = None) -> ClientResponse:
         if response_class is None:
@@ -147,7 +169,7 @@ class RequestMatch(object):
         if not isinstance(body, bytes):
             body = str.encode(body)
         if request_headers is None:
-            request_headers = {}
+            request_headers = CIMultiDict()
         loop = Mock()
         loop.get_debug = Mock()
         loop.get_debug.return_value = True
@@ -155,7 +177,7 @@ class RequestMatch(object):
         kwargs['request_info'] = RequestInfo(
             url=url,
             method=method,
-            headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
+            headers=CIMultiDictProxy(self._prepare_request_headers(request_headers)),
             real_url=url
         )
         kwargs['writer'] = None
@@ -308,7 +330,7 @@ class aioresponses(object):
             exception: Optional[Exception] = None,
             content_type: str = 'application/json',
             payload: Optional[Dict] = None,
-            headers: Optional[Dict] = None,
+            headers: Optional[Union[CIMultiDict, dict]] = None,
             response_class: Optional[Type[ClientResponse]] = None,
             repeat: Union[bool, int] = False,
             timeout: bool = False,
