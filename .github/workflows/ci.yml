@@ -47,6 +47,8 @@ jobs:
           - aiohttp-version: aiohttp312
             python-minor-version: 14
           # aiohttp 3.13 supports Python 3.10-3.14 (no excludes)
+          - aiohttp-version: aiohttp313
+            python-minor-version: 10
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
