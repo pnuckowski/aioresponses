@@ -38,24 +38,9 @@ def normalize_url(url: 'Union[URL, str]') -> 'URL':
     return url.with_query(urlencode(sorted(parse_qsl(url.query_string))))
 
 
-try:
-    from aiohttp import RequestInfo
-except ImportError:
-    class RequestInfo(object):
-        __slots__ = ('url', 'method', 'headers', 'real_url')
-
-        def __init__(
-            self, url: URL, method: str, headers: Dict, real_url: str
-        ):
-            self.url = url
-            self.method = method
-            self.headers = headers
-            self.real_url = real_url
-
 __all__ = [
     'URL',
     'Pattern',
-    'RequestInfo',
     'AIOHTTP_VERSION',
     'merge_params',
     'stream_reader_factory',

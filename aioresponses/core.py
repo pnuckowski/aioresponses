@@ -27,6 +27,7 @@ from aiohttp import (
     ClientSession,
     hdrs,
     http,
+    RequestInfo,
     typedefs
 )
 from aiohttp.helpers import TimerNoop
@@ -39,7 +40,7 @@ from .compat import (
     stream_reader_factory,
     merge_params,
     normalize_url,
-    RequestInfo, AIOHTTP_VERSION,
+    AIOHTTP_VERSION,
 )
 
 _FuncT = TypeVar("_FuncT", bound=Callable[..., Any])
