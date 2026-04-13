@@ -10,7 +10,8 @@ from aiohttp import hdrs
 from aiohttp import http
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
-from ddt import ddt, data
+from ddt import ddt, data, unpack
+from multidict import CIMultiDict
 from packaging.version import Version
 
 try:
@@ -80,6 +81,33 @@ class AIOResponsesTestCase(AsyncTestCase):
         self.assertIsInstance(response, ClientResponse)
         self.assertEqual(response.status, 204)
 
+    @unpack
+    @data(
+        ("http://example.com", "/api?foo=bar#fragment"),
+        ("http://example.com/", "/api?foo=bar#fragment")
+    )
+    @aioresponses()
+    @skipIf(condition=AIOHTTP_VERSION < Version('3.8.0'), reason='aiohttp must be >= 3.8.0')
+    async def test_base_url(self, base_url, relative_url, m):
+        m.get(self.url, status=200)
+        self.session = ClientSession(base_url=base_url)
+        response = await self.session.get(relative_url)
+        self.assertEqual(response.status, 200)
+
+    @aioresponses()
+    @skipIf(condition=AIOHTTP_VERSION < Version('3.8.0'), reason='aiohttp must be >= 3.8.0')
+    async def test_session_headers(self, m):
+        m.get(self.url)
+        self.session = ClientSession(headers={"Authorization": "Bearer foobar"})
+        response = await self.session.get(self.url)
+
+        self.assertEqual(response.status, 200)
+
+        # Check that the headers from the ClientSession are within the request
+        key = ('GET', URL(self.url))
+        request = m.requests[key][0]
+        self.assertEqual(request.kwargs["headers"]["Authorization"], 'Bearer foobar')
+
     @aioresponses()
     async def test_returned_response_headers(self, m):
         m.get(self.url,
@@ -89,6 +117,19 @@ class AIOResponsesTestCase(AsyncTestCase):
 
         self.assertEqual(response.headers['Connection'], 'keep-alive')
         self.assertEqual(response.headers[hdrs.CONTENT_TYPE], 'text/html')
+
+    @aioresponses()
+    async def test_returned_response_multidict_headers(self, m):
+        header_name = 'x-custom-header'
+        header_values = ['foo', 'bar']
+        m.get(
+            self.url,
+            content_type='text/html',
+            headers=CIMultiDict([(header_name, value) for value in header_values]),
+        )
+        response = await self.session.get(self.url)
+
+        self.assertListEqual(response.headers.getall(header_name), header_values)
 
     @aioresponses()
     async def test_returned_response_cookies(self, m):
@@ -640,6 +681,23 @@ class AIOResponsesTestCase(AsyncTestCase):
             m.assert_called_once()
 
     @aioresponses()
+    async def test_integer_repeat_once(self, m: aioresponses):
+        m.get(self.url, repeat=1)
+        m.assert_not_called()
+        await self.session.get(self.url)
+        with self.assertRaises(ClientConnectionError):
+            await self.session.get(self.url)
+
+    @aioresponses()
+    async def test_integer_repeat_twice(self, m: aioresponses):
+        m.get(self.url, repeat=2)
+        m.assert_not_called()
+        await self.session.get(self.url)
+        await self.session.get(self.url)
+        with self.assertRaises(ClientConnectionError):
+            await self.session.get(self.url)
+
+    @aioresponses()
     async def test_assert_any_call(self, m: aioresponses):
         http_bin_url = "http://httpbin.org"
         m.get(self.url)
@@ -731,6 +789,21 @@ class AIOResponsesRaiseForStatusSessionTestCase(AsyncTestCase):
                                           raise_for_status=False)
 
         self.assertEqual(response.status, 400)
+
+    @aioresponses()
+    @skipIf(condition=AIOHTTP_VERSION < Version('3.9.0'),
+            reason='aiohttp<3.9.0 does not support callable raise_for_status '
+                   'arguments for requests')
+    async def test_callable_raise_for_status(self, m):
+        async def raise_for_status(response: ClientResponse):
+            if response.status >= 400:
+                raise Exception("callable raise_for_status")
+
+        m.get(self.url, status=400)
+        with self.assertRaises(Exception) as cm:
+            await self.session.get(self.url,
+                                   raise_for_status=raise_for_status)
+        self.assertEqual(str(cm.exception), "callable raise_for_status")
 
 
 class AIOResponseRedirectTest(AsyncTestCase):
@@ -837,3 +910,18 @@ class AIOResponseRedirectTest(AsyncTestCase):
         self.assertEqual(str(response.url), f"{base_url}/baz")
         self.assertEqual(len(response.history), 1)
         self.assertEqual(str(response.history[0].url), url)
+
+    async def test_pass_through_unmatched_requests(self):
+        matched_url = "https://matched_example.org"
+        unmatched_url = "https://httpbin.org/get"
+        params_unmatched = {'foo': 'bar'}
+
+        with aioresponses(passthrough_unmatched=True) as m:
+            m.post(URL(matched_url), status=200)
+            mocked_response = await self.session.post(URL(matched_url))
+            response = await self.session.get(
+                URL(unmatched_url), params=params_unmatched
+            )
+            self.assertEqual(response.status, 200)
+            self.assertEqual(str(response.url), 'https://httpbin.org/get?foo=bar')
+            self.assertEqual(mocked_response.status, 200)

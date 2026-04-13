@@ -4,6 +4,7 @@ import copy
 import inspect
 import json
 from collections import namedtuple
+from collections.abc import Mapping
 from functools import wraps
 from typing import (
     Any,
@@ -15,7 +16,7 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
-    Union,
+    Union, Set,
 )
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -25,10 +26,13 @@ from aiohttp import (
     ClientResponse,
     ClientSession,
     hdrs,
-    http
+    http,
+    RequestInfo,
+    typedefs
 )
 from aiohttp.helpers import TimerNoop
-from multidict import CIMultiDict, CIMultiDictProxy
+from multidict import CIMultiDict, CIMultiDictProxy, MultiDictProxy, MultiDict
+from packaging.version import Version
 
 from .compat import (
     URL,
@@ -36,9 +40,8 @@ from .compat import (
     stream_reader_factory,
     merge_params,
     normalize_url,
-    RequestInfo,
+    AIOHTTP_VERSION,
 )
-
 
 _FuncT = TypeVar("_FuncT", bound=Callable[..., Any])
 
@@ -64,7 +67,8 @@ class CallbackResult:
 
 
 class RequestMatch(object):
-    url_or_pattern = None  # type: Union[URL, Pattern]
+    # type:ignore[assignment]
+    url_or_pattern: Union[URL, Pattern] = None
 
     def __init__(self, url: Union[URL, str, Pattern],
                  method: str = hdrs.METH_GET,
@@ -72,11 +76,11 @@ class RequestMatch(object):
                  body: Union[str, bytes] = '',
                  payload: Optional[Dict] = None,
                  exception: Optional[Exception] = None,
-                 headers: Optional[Dict] = None,
+                 headers: Optional[Union[CIMultiDict, dict]] = None,
                  content_type: str = 'application/json',
                  response_class: Optional[Type[ClientResponse]] = None,
                  timeout: bool = False,
-                 repeat: bool = False,
+                 repeat: Union[bool, int] = False,
                  reason: Optional[str] = None,
                  callback: Optional[Callable] = None):
         if isinstance(url, Pattern):
@@ -92,7 +96,12 @@ class RequestMatch(object):
         self.exception = exception
         if timeout:
             self.exception = asyncio.TimeoutError('Connection timeout test')
-        self.headers = headers
+        if headers is None:
+            self.headers = CIMultiDict()
+        elif isinstance(headers, dict):
+            self.headers = CIMultiDict(headers)
+        else:
+            self.headers = headers
         self.content_type = content_type
         self.response_class = response_class
         self.repeat = repeat
@@ -118,9 +127,9 @@ class RequestMatch(object):
             return False
         return self.match_func(url)
 
-    def _build_raw_headers(self, headers: Dict) -> Tuple:
+    def _build_raw_headers(self, headers: Mapping[str, str]) -> Tuple:
         """
-        Convert a dict of headers to a tuple of tuples
+        Convert a multidict of headers to a tuple of tuples
 
         Mimics the format of ClientResponse.
         """
@@ -129,14 +138,29 @@ class RequestMatch(object):
             raw_headers.append((k.encode('utf8'), v.encode('utf8')))
         return tuple(raw_headers)
 
+    def _prepare_request_headers(self, headers: Optional[typedefs.LooseHeaders]) -> "CIMultiDict[str]":
+        """Convert headers from aiohttp _request method to CIMultiDict. Copy-pasted from aiohttp.client"""
+        result = CIMultiDict()
+        if headers:
+            if not isinstance(headers, (MultiDictProxy, MultiDict)):
+                headers = CIMultiDict(headers)
+            added_names: Set[str] = set()
+            for key, value in headers.items():
+                if key in added_names:
+                    result.add(key, value)
+                else:
+                    result[key] = value
+                    added_names.add(key)
+        return result
+
     def _build_response(self, url: 'Union[URL, str]',
                         method: str = hdrs.METH_GET,
-                        request_headers: Optional[Dict] = None,
+                        request_headers: Optional[typedefs.LooseHeaders] = None,
                         status: int = 200,
                         body: Union[str, bytes] = '',
                         content_type: str = 'application/json',
                         payload: Optional[Dict] = None,
-                        headers: Optional[Dict] = None,
+                        headers: Optional[CIMultiDict] = None,
                         response_class: Optional[Type[ClientResponse]] = None,
                         reason: Optional[str] = None) -> ClientResponse:
         if response_class is None:
@@ -146,15 +170,16 @@ class RequestMatch(object):
         if not isinstance(body, bytes):
             body = str.encode(body)
         if request_headers is None:
-            request_headers = {}
+            request_headers = CIMultiDict()
         loop = Mock()
         loop.get_debug = Mock()
         loop.get_debug.return_value = True
-        kwargs = {}  # type: Dict[str, Any]
+        kwargs: Dict[str, Any] = {}
         kwargs['request_info'] = RequestInfo(
             url=url,
             method=method,
-            headers=CIMultiDictProxy(CIMultiDict(**request_headers)),
+            headers=CIMultiDictProxy(self._prepare_request_headers(request_headers)),
+            real_url=url
         )
         kwargs['writer'] = None
         kwargs['continue100'] = None
@@ -188,7 +213,7 @@ class RequestMatch(object):
         self, url: URL, **kwargs: Any
     ) -> 'Union[ClientResponse, Exception]':
         if callable(self.callback):
-            if asyncio.iscoroutinefunction(self.callback):
+            if inspect.iscoroutinefunction(self.callback):
                 result = await self.callback(url, **kwargs)
             else:
                 result = self.callback(url, **kwargs)
@@ -212,19 +237,25 @@ class RequestMatch(object):
             reason=result.reason)
         return resp
 
+    def __repr__(self) -> str:
+        return f"RequestMatch('{self.url_or_pattern}')"
+
 
 RequestCall = namedtuple('RequestCall', ['args', 'kwargs'])
 
 
 class aioresponses(object):
     """Mock aiohttp requests made by ClientSession."""
-    _matches = None  # type: Dict[str, RequestMatch]
-    _responses = None  # type: List[ClientResponse]
-    requests = None  # type: Dict
+    # type:ignore[assignment]
+    _matches: Dict[str, RequestMatch] = None
+    _responses: List[ClientResponse] = None
+    # type:ignore[assignment]
+    requests: Dict[Tuple[str, URL], List[RequestCall]] = None
 
     def __init__(self, **kwargs: Any):
         self._param = kwargs.pop('param', None)
         self._passthrough = kwargs.pop('passthrough', [])
+        self.passthrough_unmatched = kwargs.pop('passthrough_unmatched', False)
         self.patcher = patch('aiohttp.client.ClientSession._request',
                              side_effect=self._request_mock,
                              autospec=True)
@@ -245,7 +276,7 @@ class aioresponses(object):
                 args += (ctx,)
             return args, kwargs
 
-        if asyncio.iscoroutinefunction(f):
+        if inspect.iscoroutinefunction(f):
             @wraps(f)
             async def wrapped(*args, **kwargs):
                 with self as ctx:
@@ -302,9 +333,9 @@ class aioresponses(object):
             exception: Optional[Exception] = None,
             content_type: str = 'application/json',
             payload: Optional[Dict] = None,
-            headers: Optional[Dict] = None,
+            headers: Optional[Union[CIMultiDict, dict]] = None,
             response_class: Optional[Type[ClientResponse]] = None,
-            repeat: bool = False,
+            repeat: Union[bool, int] = False,
             timeout: bool = False,
             reason: Optional[str] = None,
             callback: Optional[Callable] = None) -> None:
@@ -454,8 +485,13 @@ class aioresponses(object):
             else:
                 return None
 
-            if matcher.repeat is False:
-                del self._matches[key]
+            if isinstance(matcher.repeat, bool):
+                if not matcher.repeat:
+                    del self._matches[key]
+            else:
+                if matcher.repeat == 1:
+                    del self._matches[key]
+                matcher.repeat -= 1
 
             if self.is_exception(response_or_exc):
                 raise response_or_exc
@@ -486,10 +522,26 @@ class aioresponses(object):
                             *args: Tuple,
                             **kwargs: Any) -> 'ClientResponse':
         """Return mocked response object or raise connection error."""
+        data = kwargs.get('data', None)
+        if data is not None and hasattr(data, "__aiter__"):
+            chunks = []
+            async for chunk in data:
+                chunks.append(chunk)
+            kwargs['data'] = b"".join(chunks)
+
         if orig_self.closed:
             raise RuntimeError('Session is closed')
 
-        url_origin = url
+        if AIOHTTP_VERSION >= Version('3.8.0'):
+            # Join url with ClientSession._base_url
+            url = orig_self._build_url(url)
+            url_origin = str(url)
+            # Combine ClientSession headers with passed headers
+            if orig_self.headers:
+                kwargs["headers"] = orig_self._prepare_headers(kwargs.get("headers"))
+        else:
+            url_origin = url
+
         url = normalize_url(merge_params(url, kwargs.get('params')))
         url_str = str(url)
         for prefix in self._passthrough:
@@ -506,6 +558,10 @@ class aioresponses(object):
         response = await self.match(method, url, **kwargs)
 
         if response is None:
+            if self.passthrough_unmatched:
+                return (await self.patcher.temp_original(
+                    orig_self, method, url_origin, *args, **kwargs
+                ))
             raise ClientConnectionError(
                 'Connection refused: {} {}'.format(method, url)
             )
@@ -521,7 +577,10 @@ class aioresponses(object):
             raise_for_status = getattr(
                 orig_self, '_raise_for_status', False
             )
-        if raise_for_status:
+
+        if callable(raise_for_status):
+            await raise_for_status(response)
+        elif raise_for_status:
             response.raise_for_status()
 
         return response

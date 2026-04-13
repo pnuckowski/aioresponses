@@ -2,26 +2,12 @@
 aioresponses
 ===============================
 
-.. image:: https://travis-ci.org/pnuckowski/aioresponses.svg?branch=master
-        :target: https://travis-ci.org/pnuckowski/aioresponses
-
-.. image:: https://coveralls.io/repos/github/pnuckowski/aioresponses/badge.svg?branch=master
-        :target: https://coveralls.io/github/pnuckowski/aioresponses?branch=master
-
-.. image:: https://landscape.io/github/pnuckowski/aioresponses/master/landscape.svg?style=flat
-        :target: https://landscape.io/github/pnuckowski/aioresponses/master
-        :alt: Code Health
-
-.. image:: https://pyup.io/repos/github/pnuckowski/aioresponses/shield.svg
-        :target: https://pyup.io/repos/github/pnuckowski/aioresponses/
-        :alt: Updates
-
 .. image:: https://img.shields.io/pypi/v/aioresponses.svg
         :target: https://pypi.python.org/pypi/aioresponses
 
-.. image:: https://readthedocs.org/projects/aioresponses/badge/?version=latest
-        :target: https://aioresponses.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
+.. image:: https://github.com/pnuckowski/aioresponses/actions/workflows/ci.yml/badge.svg
+        :target: https://github.com/pnuckowski/aioresponses/actions/workflows/ci.yml
+        :alt: CI
 
 
 Aioresponses is a helper to mock/fake web requests in python aiohttp package.
@@ -40,8 +26,8 @@ Installing
 
 Supported versions
 ------------------
-- Python 3.7+
-- aiohttp>=3.3.0,<4.0.0
+- Python 3.10+
+- aiohttp>=3.8,<4.0
 
 Usage
 --------
@@ -140,7 +126,11 @@ for convenience use *payload* argument to mock out json response. Example below.
 
 **Repeat response for the same url**  
 
-E.g. for cases you want to test retrying mechanisms
+E.g. for cases where you want to test retrying mechanisms.
+
+- By default, ``repeat=False`` means the response is not repeated (``repeat=1`` does the same).
+- Use ``repeat=n`` to repeat a response n times.
+- Use ``repeat=True`` to repeat a response indefinitely.
 
 .. code:: python
 
@@ -152,14 +142,16 @@ E.g. for cases you want to test retrying mechanisms
     def test_multiple_responses(m):
         loop = asyncio.get_event_loop()
         session = aiohttp.ClientSession()
-        m.get('http://example.com', status=500, repeat=True)
-        m.get('http://example.com', status=200)  # will not take effect
+        m.get('http://example.com', status=500, repeat=2)
+        m.get('http://example.com', status=200)  # will take effect after two preceding calls
 
         resp1 = loop.run_until_complete(session.get('http://example.com'))
         resp2 = loop.run_until_complete(session.get('http://example.com'))
+        resp3 = loop.run_until_complete(session.get('http://example.com'))
 
         assert resp1.status == 500
         assert resp2.status == 500
+        assert resp3.status == 200
 
 
 **match URLs with regular expressions**
@@ -232,6 +224,23 @@ E.g. for cases you want to test retrying mechanisms
         # this will actually perform a request
         resp = loop.run_until_complete(session.get('http://backend/api'))
 
+**also you can passthrough all requests except specified by mocking object**
+
+.. code:: python
+
+    import asyncio
+    import aiohttp
+    from aioresponses import aioresponses
+
+    @aioresponses(passthrough_unmatched=True)
+    def test_passthrough_unmatched(m, test_client):
+        url = 'https://httpbin.org/get'
+        m.get(url, status=200)
+        session = aiohttp.ClientSession()
+        # this will actually perform a request
+        resp = loop.run_until_complete(session.get('http://backend/api'))
+        # this will not perform a request and resp2.status will return 200
+        resp2 = loop.run_until_complete(session.get(url))
 
 **aioresponses allows to throw an exception**
 
