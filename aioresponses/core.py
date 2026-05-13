@@ -551,7 +551,7 @@ class aioresponses(object):
                     orig_self, method, url_origin, *args, **kwargs
                 ))
 
-        key = (method, url)
+        key = (method.upper(), url)
         self.requests.setdefault(key, [])
         request_call = self._build_request_call(method, *args, **kwargs)
         self.requests[key].append(request_call)
