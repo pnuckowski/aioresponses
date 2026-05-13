@@ -709,6 +709,13 @@ class AIOResponsesTestCase(AsyncTestCase):
         m.assert_any_call(http_bin_url)
 
     @aioresponses()
+    async def test_assert_any_call_lowercase_method(self, m: aioresponses):
+        m.get(self.url)
+        await self.session.request('get', self.url)
+        m.assert_any_call(self.url)
+        m.assert_called_with(self.url)
+
+    @aioresponses()
     async def test_assert_any_call_not_called(self, m: aioresponses):
         http_bin_url = "http://httpbin.org"
         m.get(self.url)
