@@ -183,6 +183,12 @@ class RequestMatch(object):
             real_url=url
         )
         kwargs['writer'] = None
+        # aiohttp 3.14 added a required keyword-only ``stream_writer`` argument
+        # to ``ClientResponse.__init__``. It is only consulted for its
+        # ``output_size`` attribute, so a lightweight mock is sufficient. The
+        # signature check keeps this a no-op on aiohttp < 3.14.
+        if 'stream_writer' in inspect.signature(response_class).parameters:
+            kwargs['stream_writer'] = Mock(output_size=0)
         kwargs['continue100'] = None
         kwargs['timer'] = TimerNoop()
         kwargs['traces'] = []
