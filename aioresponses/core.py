@@ -188,6 +188,8 @@ class RequestMatch(object):
         kwargs['traces'] = []
         kwargs['loop'] = loop
         kwargs['session'] = None
+        if AIOHTTP_VERSION >= Version('3.14.0'):
+            kwargs['stream_writer'] = Mock(output_size=0)
 
         # We need to initialize headers manually
         _headers = CIMultiDict({hdrs.CONTENT_TYPE: content_type})
