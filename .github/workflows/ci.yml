@@ -23,7 +23,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-minor-version: [10, 11, 12, 13, 14]
-        aiohttp-version: [aiohttp38, aiohttp39, aiohttp310, aiohttp311, aiohttp312, aiohttp313]
+        aiohttp-version: [aiohttp38, aiohttp39, aiohttp310, aiohttp311, aiohttp312, aiohttp313, aiohttp314]
         exclude:
           # aiohttp 3.8 supports Python up to 3.10
           - aiohttp-version: aiohttp38
@@ -48,6 +48,9 @@ jobs:
             python-minor-version: 14
           # aiohttp 3.13 supports Python 3.10-3.14 (no excludes)
           - aiohttp-version: aiohttp313
+            python-minor-version: 10
+          # aiohttp 3.14 supports Python 3.11-3.14
+          - aiohttp-version: aiohttp314
             python-minor-version: 10
     runs-on: ${{ matrix.os }}
     steps:
