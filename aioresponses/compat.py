@@ -2,6 +2,7 @@
 import asyncio  # noqa: F401
 from re import Pattern
 from typing import Dict, Optional, Union  # noqa
+from unittest.mock import Mock
 from urllib.parse import parse_qsl, urlencode
 
 from aiohttp import __version__ as aiohttp_version, StreamReader
@@ -17,6 +18,10 @@ def stream_reader_factory(  # noqa
     loop: 'Optional[asyncio.AbstractEventLoop]' = None
 ) -> StreamReader:
     protocol = ResponseHandler(loop=loop)
+    # Satisfies BaseProtocol's flow control hooks that
+    # fire when a large payload exceeds the StreamReader limit.
+    protocol._parser = Mock()
+    protocol._parser.feed_data.return_value = ([], False, b'')
     return StreamReader(protocol, limit=2 ** 16, loop=loop)
 
 

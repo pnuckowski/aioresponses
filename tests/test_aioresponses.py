@@ -4,9 +4,10 @@ import re
 from asyncio import CancelledError, TimeoutError
 from random import uniform
 from typing import Coroutine, Generator, Union
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from aiohttp import hdrs
+from aiohttp.base_protocol import BaseProtocol
 from aiohttp import http
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
@@ -311,6 +312,14 @@ class AIOResponsesTestCase(AsyncTestCase):
         resp = await self.session.get(self.url)
         content = await resp.content.read()
         self.assertEqual(content, b'Test')
+
+    @aioresponses()
+    async def test_streaming_large_body(self, m):
+        body = b'x' * (1024 * 1024)
+        m.get(self.url, body=body)
+        resp = await self.session.get(self.url)
+        content = await resp.content.read()
+        self.assertEqual(content, body)
 
     @aioresponses()
     async def test_streaming_up_to(self, m):

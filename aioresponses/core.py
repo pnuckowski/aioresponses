@@ -182,6 +182,8 @@ class RequestMatch(object):
             headers=CIMultiDictProxy(self._prepare_request_headers(request_headers)),
             real_url=url
         )
+        if 'stream_writer' in inspect.signature(response_class).parameters:
+            kwargs['stream_writer'] = Mock(output_size=0)
         kwargs['writer'] = None
         kwargs['continue100'] = None
         kwargs['timer'] = TimerNoop()
