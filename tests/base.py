@@ -4,7 +4,7 @@ import sys
 
 try:
     # as from Py3.8 unittest supports coroutines as test functions
-    from unittest import IsolatedAsyncioTestCase, skipIf
+    from unittest import IsolatedAsyncioTestCase
 
 
     def fail_on(**kw):  # noqa
@@ -19,7 +19,6 @@ try:
 
 except ImportError:
     # fallback to asynctest
-    from asynctest import fail_on, skipIf
     from asynctest.case import TestCase as IsolatedAsyncioTestCase
 
 IS_GTE_PY38 = sys.version_info >= (3, 8)

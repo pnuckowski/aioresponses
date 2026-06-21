@@ -34,6 +34,7 @@ from .base import fail_on, skipIf, AsyncTestCase
 
 MINIMUM_AIOHTTP_VERSION = Version('3.4.0')
 
+
 @ddt
 class AIOResponsesTestCase(AsyncTestCase):
 
@@ -551,7 +552,7 @@ class AIOResponsesTestCase(AsyncTestCase):
             )
             return ext_rep
 
-        with aioresponses(passthrough=[external_api]) as m:
+        with aioresponses(passthrough=[external_api]):
             params = {'foo': 'bar'}
             ext = await doit(params=params)
             self.assertEqual(ext.status, 200)

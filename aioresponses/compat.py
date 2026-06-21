@@ -2,7 +2,6 @@
 import asyncio  # noqa: F401
 from re import Pattern
 from typing import Dict, Optional, Union  # noqa
-from urllib.parse import parse_qsl, urlencode
 
 from aiohttp import __version__ as aiohttp_version, StreamReader
 from aiohttp.client_proto import ResponseHandler
