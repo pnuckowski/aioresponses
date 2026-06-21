@@ -8,9 +8,10 @@ aioresponses-ng
 .. image:: https://github.com/mountaingod2/aioresponses-ng/actions/workflows/ci.yml/badge.svg
         :target: https://github.com/mountaingod2/aioresponses-ng/actions/workflows/ci.yml
 
-.. note::
-   This is a maintained fork of `aioresponses <https://github.com/pnuckowski/aioresponses>`_
-   with aiohttp compatibility fixes. The API is identical — just swap the package name.
+**Note:** This is a maintained fork of `aioresponses <https://github.com/pnuckowski/aioresponses>`_
+with aiohttp compatibility fixes. The API is identical — just swap the package name.
+
+----
 
 Aioresponses is a helper to mock/fake web requests in python aiohttp package.
 
