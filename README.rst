@@ -1,14 +1,16 @@
 ===============================
-aioresponses
+aioresponses-ng
 ===============================
 
-.. image:: https://img.shields.io/pypi/v/aioresponses.svg
-        :target: https://pypi.python.org/pypi/aioresponses
+.. image:: https://img.shields.io/pypi/v/aioresponses-ng.svg
+        :target: https://pypi.python.org/pypi/aioresponses-ng
 
-.. image:: https://github.com/pnuckowski/aioresponses/actions/workflows/ci.yml/badge.svg
-        :target: https://github.com/pnuckowski/aioresponses/actions/workflows/ci.yml
-        :alt: CI
+.. image:: https://github.com/mountaingod2/aioresponses-ng/actions/workflows/ci.yml/badge.svg
+        :target: https://github.com/mountaingod2/aioresponses-ng/actions/workflows/ci.yml
 
+.. note::
+   This is a maintained fork of `aioresponses <https://github.com/pnuckowski/aioresponses>`_
+   with aiohttp compatibility fixes. The API is identical — just swap the package name.
 
 Aioresponses is a helper to mock/fake web requests in python aiohttp package.
 
@@ -22,7 +24,7 @@ Installing
 
 .. code:: bash
 
-    $ pip install aioresponses
+    $ pip install aioresponses-ng
 
 Supported versions
 ------------------
