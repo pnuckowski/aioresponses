@@ -1,4 +1,4 @@
-.PHONY: clean clean-test clean-pyc clean-build help install lint test coverage dist release
+.PHONY: clean clean-test clean-pyc clean-build help install lint format test coverage dist release
 .DEFAULT_GOAL := help
 
 define PRINT_HELP_PYSCRIPT
@@ -38,8 +38,12 @@ clean-test: ## remove test and coverage artifacts
 	rm -f .coverage
 	rm -fr htmlcov/
 
-lint: ## check style with flake8
-	uv run flake8 aioresponses tests
+lint: ## check code with ruff
+	uv run ruff check aioresponses tests
+
+format: ## auto-fix lint issues and format code
+	uv run ruff check --fix aioresponses tests
+	uv run ruff format aioresponses tests
 
 test: ## run tests
 	uv run pytest

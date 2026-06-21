@@ -1,4 +1,4 @@
-name: flake8
+name: Lint
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  flake8:
+  ruff:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,5 +21,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev
 
-      - name: Run flake8
-        run: uv run flake8 aioresponses
+      - name: Lint with ruff
+        run: uv run ruff check aioresponses tests
+
+      - name: Check formatting with ruff
+        run: uv run ruff format --check aioresponses tests

@@ -1,7 +1,10 @@
 import asyncio
-from unittest import IsolatedAsyncioTestCase, skipIf
+from unittest import IsolatedAsyncioTestCase
+
+import pytest
 
 
+@pytest.fixture
 def fail_on(**kw):
     """No-op decorator kept for test compatibility."""
 
@@ -12,9 +15,6 @@ def fail_on(**kw):
         return inner
 
     return outer
-
-
-__all__ = ["AsyncTestCase", "fail_on", "skipIf"]
 
 
 class AsyncTestCase(IsolatedAsyncioTestCase):
