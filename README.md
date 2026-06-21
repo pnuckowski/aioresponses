@@ -1,0 +1,300 @@
+# aioresponses-ng
+
+[![PyPI version](https://img.shields.io/pypi/v/aioresponses-ng.svg)](https://pypi.python.org/pypi/aioresponses-ng)
+[![CI](https://github.com/mountaingod2/aioresponses-ng/actions/workflows/ci.yml/badge.svg)](https://github.com/mountaingod2/aioresponses-ng/actions/workflows/ci.yml)
+
+> [!NOTE]
+> This is a maintained fork of [aioresponses](https://github.com/pnuckowski/aioresponses)
+> with aiohttp compatibility fixes. The API is identical - just swap the package name.
+
+Aioresponses is a helper to mock/fake web requests in python aiohttp package.
+
+For the *requests* module there are a lot of packages that help us with testing (e.g. *httpretty*, *responses*, *requests-mock*).
+
+When it comes to testing asynchronous HTTP requests it is a bit harder (at least at the beginning).
+The purpose of this package is to provide an easy way to test asynchronous HTTP requests.
+
+## Installing
+
+```bash
+pip install aioresponses-ng
+```
+
+## Supported versions
+
+- Python 3.10+
+- aiohttp>=3.8,<4.0
+
+## Usage
+
+To mock out HTTP requests use *aioresponses* as a method decorator or as a context manager.
+
+Response *status* code, *body*, *payload* (for json response) and *headers* can be mocked.
+
+Supported HTTP methods: **GET**, **POST**, **PUT**, **PATCH**, **DELETE** and **OPTIONS**.
+
+```python
+import aiohttp
+import asyncio
+from aioresponses import aioresponses
+
+@aioresponses()
+def test_request(mocked):
+    loop = asyncio.get_event_loop()
+    mocked.get('http://example.com', status=200, body='test')
+    session = aiohttp.ClientSession()
+    resp = loop.run_until_complete(session.get('http://example.com'))
+
+    assert resp.status == 200
+    mocked.assert_called_once_with('http://example.com')
+```
+
+For convenience use the *payload* argument to mock out JSON responses.
+
+### As a context manager
+
+```python
+import asyncio
+import aiohttp
+from aioresponses import aioresponses
+
+def test_ctx():
+    loop = asyncio.get_event_loop()
+    session = aiohttp.ClientSession()
+    with aioresponses() as m:
+        m.get('http://test.example.com', payload=dict(foo='bar'))
+
+        resp = loop.run_until_complete(session.get('http://test.example.com'))
+        data = loop.run_until_complete(resp.json())
+
+        assert dict(foo='bar') == data
+        m.assert_called_once_with('http://test.example.com')
+```
+
+### Mocking HTTP headers
+
+```python
+import asyncio
+import aiohttp
+from aioresponses import aioresponses
+
+@aioresponses()
+def test_http_headers(m):
+    loop = asyncio.get_event_loop()
+    session = aiohttp.ClientSession()
+    m.post(
+        'http://example.com',
+        payload=dict(),
+        headers=dict(connection='keep-alive'),
+    )
+
+    resp = loop.run_until_complete(session.post('http://example.com'))
+
+    # note that we pass 'connection' but get 'Connection' (capitalized)
+    # under the hood `multidict` is used to work with HTTP headers
+    assert resp.headers['Connection'] == 'keep-alive'
+    m.assert_called_once_with('http://example.com', method='POST')
+```
+
+### Multiple responses for the same URL
+
+```python
+import asyncio
+import aiohttp
+from aioresponses import aioresponses
+
+@aioresponses()
+def test_multiple_responses(m):
+    loop = asyncio.get_event_loop()
+    session = aiohttp.ClientSession()
+    m.get('http://example.com', status=500)
+    m.get('http://example.com', status=200)
+
+    resp1 = loop.run_until_complete(session.get('http://example.com'))
+    resp2 = loop.run_until_complete(session.get('http://example.com'))
+
+    assert resp1.status == 500
+    assert resp2.status == 200
+```
+
+### Repeating responses
+
+Useful for testing retry mechanisms.
+
+- By default, `repeat=False` means the response is used once (`repeat=1` does the same).
+- Use `repeat=n` to repeat a response n times.
+- Use `repeat=True` to repeat a response indefinitely.
+
+```python
+import asyncio
+import aiohttp
+from aioresponses import aioresponses
+
+@aioresponses()
+def test_multiple_responses(m):
+    loop = asyncio.get_event_loop()
+    session = aiohttp.ClientSession()
+    m.get('http://example.com', status=500, repeat=2)
+    m.get('http://example.com', status=200)  # takes effect after two preceding calls
+
+    resp1 = loop.run_until_complete(session.get('http://example.com'))
+    resp2 = loop.run_until_complete(session.get('http://example.com'))
+    resp3 = loop.run_until_complete(session.get('http://example.com'))
+
+    assert resp1.status == 500
+    assert resp2.status == 500
+    assert resp3.status == 200
+```
+
+### Matching URLs with regular expressions
+
+```python
+import asyncio
+import aiohttp
+import re
+from aioresponses import aioresponses
+
+@aioresponses()
+def test_regexp_example(m):
+    loop = asyncio.get_event_loop()
+    session = aiohttp.ClientSession()
+    pattern = re.compile(r'^http://example\.com/api\?foo=.*$')
+    m.get(pattern, status=200)
+
+    resp = loop.run_until_complete(session.get('http://example.com/api?foo=bar'))
+
+    assert resp.status == 200
+```
+
+### Redirect responses
+
+```python
+import asyncio
+import aiohttp
+from aioresponses import aioresponses
+
+@aioresponses()
+def test_redirect_example(m):
+    loop = asyncio.get_event_loop()
+    session = aiohttp.ClientSession()
+
+    # absolute URLs are supported
+    m.get(
+        'http://example.com/',
+        headers={'Location': 'http://another.com/'},
+        status=307
+    )
+
+    resp = loop.run_until_complete(
+        session.get('http://example.com/', allow_redirects=True)
+    )
+    assert resp.url == 'http://another.com/'
+
+    # relative URLs are also supported
+    m.get(
+        'http://example.com/',
+        headers={'Location': '/test'},
+        status=307
+    )
+    resp = loop.run_until_complete(
+        session.get('http://example.com/', allow_redirects=True)
+    )
+    assert resp.url == 'http://example.com/test'
+```
+
+### Passthrough to real servers
+
+```python
+import asyncio
+import aiohttp
+from aioresponses import aioresponses
+
+@aioresponses(passthrough=['http://backend'])
+def test_passthrough(m, test_client):
+    session = aiohttp.ClientSession()
+    # this will actually perform a request
+    resp = loop.run_until_complete(session.get('http://backend/api'))
+```
+
+### Passthrough all unmatched requests
+
+```python
+import asyncio
+import aiohttp
+from aioresponses import aioresponses
+
+@aioresponses(passthrough_unmatched=True)
+def test_passthrough_unmatched(m, test_client):
+    url = 'https://httpbin.org/get'
+    m.get(url, status=200)
+    session = aiohttp.ClientSession()
+    # this will actually perform a request
+    resp = loop.run_until_complete(session.get('http://backend/api'))
+    # this will not perform a request and resp2.status will return 200
+    resp2 = loop.run_until_complete(session.get(url))
+```
+
+### Throwing exceptions
+
+```python
+import asyncio
+from aiohttp import ClientSession
+from aiohttp.http_exceptions import HttpProcessingError
+from aioresponses import aioresponses
+
+@aioresponses()
+def test_how_to_throw_an_exception(m, test_client):
+    loop = asyncio.get_event_loop()
+    session = ClientSession()
+    m.get('http://example.com/api', exception=HttpProcessingError('test'))
+
+    # calling
+    # loop.run_until_complete(session.get('http://example.com/api'))
+    # will throw an exception.
+```
+
+### Callbacks for dynamic responses
+
+```python
+import asyncio
+import aiohttp
+from aioresponses import CallbackResult, aioresponses
+
+def callback(url, **kwargs):
+    return CallbackResult(status=418)
+
+@aioresponses()
+def test_callback(m, test_client):
+    loop = asyncio.get_event_loop()
+    session = ClientSession()
+    m.get('http://example.com', callback=callback)
+
+    resp = loop.run_until_complete(session.get('http://example.com'))
+
+    assert resp.status == 418
+```
+
+### Using with pytest fixtures
+
+```python
+import pytest
+from aioresponses import aioresponses
+
+@pytest.fixture
+def mock_aioresponse():
+    with aioresponses() as m:
+        yield m
+```
+
+## Features
+
+- Easy to mock out HTTP requests made by `aiohttp.ClientSession`
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
+
+## Credits
+
+Fork maintained by [MountainGod2](https://github.com/mountaingod2).
+Originally created by [Pawel Nuckowski](https://github.com/pnuckowski) using [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage) template.
