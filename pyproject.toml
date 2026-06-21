@@ -1,0 +1,83 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aioresponses-ng"
+version = "0.8.0"
+description = "Maintained fork of aioresponses with aiohttp compatibility fixes"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "MountainGod2", email = "admin@reid.ca" },
+]
+keywords = ["aiohttp", "mock", "testing", "asyncio"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Testing :: Mocking",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "packaging>=22.0",
+    "aiohttp>=3.8,<4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/mountaingod2/aioresponses-ng"
+Repository = "https://github.com/mountaingod2/aioresponses-ng"
+Issues = "https://github.com/mountaingod2/aioresponses-ng/issues"
+
+[dependency-groups]
+dev = [
+    "flake8>=7.3.0",
+    "coverage>=7.13.0",
+    "pytest>=9.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=7.1.0",
+    "pytest-html>=4.2.0",
+    "ddt>=1.7.2",
+    "yarl",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["aioresponses"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "aioresponses/",
+    "tests/",
+    "AUTHORS.rst",
+    "CONTRIBUTING.rst",
+    "HISTORY.rst",
+    "LICENSE",
+    "README.md",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["aioresponses"]
+
+[tool.coverage.report]
+omit = [
+    "/usr*",
+    "*/tests/*",
+    ".venv/*",
+]
+
+[tool.flake8]
+max-line-length = 120

@@ -1,6 +1,5 @@
-.PHONY: clean clean-test clean-pyc clean-build help
+.PHONY: clean clean-test clean-pyc clean-build help install lint test coverage dist release
 .DEFAULT_GOAL := help
-
 
 define PRINT_HELP_PYSCRIPT
 import re, sys
@@ -16,8 +15,10 @@ export PRINT_HELP_PYSCRIPT
 help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
+install: ## install the package and dev dependencies
+	uv sync --group dev
 
+clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
 
 clean-build: ## remove build artifacts
 	rm -fr build/
@@ -33,36 +34,22 @@ clean-pyc: ## remove Python file artifacts
 	find . -name '__pycache__' -exec rm -fr {} +
 
 clean-test: ## remove test and coverage artifacts
-	rm -fr .tox/
 	rm -fr .pytest_cache/
 	rm -f .coverage
 	rm -fr htmlcov/
 
 lint: ## check style with flake8
-	flake8 aioresponses tests
+	uv run flake8 aioresponses tests
 
-test: ## run tests quickly with the default Python
+test: ## run tests
+	uv run pytest
 
-		python setup.py test
+coverage: ## run tests with coverage report
+	uv run pytest --cov=aioresponses --cov-report=term-missing --cov-report=html
 
-test-all: ## run tests on every Python version with tox
-	tox
-
-coverage: ## check code coverage quickly with the default Python
-
-		coverage run --source aioresponses setup.py test
-
-		coverage report -m
-		coverage html
-
-release: clean ## package and upload a release
-	python setup.py sdist upload
-	python setup.py bdist_wheel upload
-
-dist: clean ## builds source and wheel package
-	python setup.py sdist
-	python setup.py bdist_wheel
+dist: clean ## build source and wheel package
+	uv build
 	ls -l dist
 
-install: clean ## install the package to the active Python's site-packages
-	python setup.py install
+release: dist ## upload a release to PyPI
+	uv publish
