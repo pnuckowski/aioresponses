@@ -15,7 +15,7 @@ def stream_reader_factory(loop=None) -> StreamReader:
     # The ``loop`` parameter was removed from ResponseHandler and StreamReader
     # in aiohttp 3.10. Pass it only on older versions.
     if AIOHTTP_VERSION >= Version("3.10.0"):
-        protocol = ResponseHandler(loop)
+        protocol = ResponseHandler()
         return StreamReader(protocol, limit=2**16)
     protocol = ResponseHandler(loop=loop)
     return StreamReader(protocol, limit=2**16, loop=loop)
