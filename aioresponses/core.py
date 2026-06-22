@@ -534,7 +534,7 @@ class aioresponses:
         if orig_self.closed:
             raise RuntimeError("Session is closed")
 
-        if AIOHTTP_VERSION >= Version("3.8.0"):
+        if AIOHTTP_VERSION >= Version("3.9.0"):
             url = orig_self._build_url(url)
             url_origin = str(url)
             if orig_self.headers:

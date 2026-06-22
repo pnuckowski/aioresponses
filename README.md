@@ -23,7 +23,7 @@ pip install aioresponses-ng
 ## Supported versions
 
 - Python 3.10+
-- aiohttp>=3.8,<4.0
+- aiohttp>=3.9,<4.0
 
 ## Usage
 
