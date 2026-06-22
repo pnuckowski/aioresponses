@@ -1,5 +1,0 @@
-[run]
-source = aioresponses
-
-[report]
-omit = /usr*,setup.py,*egg*,.venv/*,*/tests/*
