@@ -304,6 +304,13 @@ class AIOResponsesTestCase(AsyncTestCase):
                 data=body,
                 headers={'User-Agent': 'aioresponses'}
             )
+        # when a args_to_match is not on the assertion, it should raise assertion error
+        with self.assertRaises(AssertionError):
+            m.assert_called_once_with(
+                self.url,
+                method='POST',
+                args_to_match=['headers'],
+            )
 
     @aioresponses()
     async def test_streaming(self, m):
