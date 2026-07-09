@@ -806,6 +806,7 @@ class AIOResponsesRaiseForStatusSessionTestCase(AsyncTestCase):
         self.assertEqual(str(cm.exception), "callable raise_for_status")
 
 
+@ddt
 class AIOResponseRedirectTest(AsyncTestCase):
 
     async def setup(self):
@@ -835,18 +836,62 @@ class AIOResponseRedirectTest(AsyncTestCase):
 
     @aioresponses()
     async def test_post_redirect_followed(self, rsps):
+        # A 307 redirect must preserve the original request method, so a POST
+        # stays a POST when the redirect is followed (matching aiohttp).
         rsps.post(
             self.url,
             status=307,
             headers={"Location": "https://httpbin.org"},
         )
-        rsps.get("https://httpbin.org")
+        rsps.post("https://httpbin.org")
         response = await self.session.post(
             self.url, allow_redirects=True
         )
         self.assertEqual(response.status, 200)
         self.assertEqual(str(response.url), "https://httpbin.org")
-        self.assertEqual(response.method, "get")
+        self.assertEqual(response.method, "post")
+        self.assertEqual(len(response.history), 1)
+        self.assertEqual(str(response.history[0].url), self.url)
+
+    @unpack
+    @data(
+        # status, request method, expected method after redirect
+        (307, "post", "post"),
+        (307, "put", "put"),
+        (307, "delete", "delete"),
+        (308, "post", "post"),
+        (308, "put", "put"),
+        (308, "delete", "delete"),
+        (303, "post", "get"),
+        (303, "put", "get"),
+        (301, "post", "get"),
+        (302, "post", "get"),
+        (301, "put", "put"),
+        (302, "put", "put"),
+        (301, "delete", "delete"),
+        (302, "delete", "delete"),
+    )
+    @aioresponses()
+    async def test_redirect_preserves_method(
+        self, status, request_method, expected_method, rsps
+    ):
+        target = "https://httpbin.org"
+        rsps.add(
+            self.url,
+            method=request_method,
+            status=status,
+            headers={"Location": target},
+        )
+        # Register the target only for the method we expect the redirect to
+        # be re-issued with; if the method is rewritten incorrectly the
+        # request will fail to match and raise ClientConnectionError.
+        rsps.add(target, method=expected_method)
+        response = await getattr(self.session, request_method)(
+            self.url, allow_redirects=True
+        )
+        self.assertEqual(response.status, 200)
+        self.assertEqual(str(response.url), target)
+        self.assertEqual(response.method, expected_method)
         self.assertEqual(len(response.history), 1)
         self.assertEqual(str(response.history[0].url), self.url)
 
