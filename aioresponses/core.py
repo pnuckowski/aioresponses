@@ -510,7 +510,17 @@ class aioresponses(object):
                     url = redirect_url
                 else:
                     url = url.join(redirect_url)
-                method = 'get'
+                # Mirror aiohttp's behaviour when rewriting the method on a
+                # redirect: 303 always becomes GET, 301/302 downgrade only a
+                # POST to GET (other methods are preserved), and 307/308 keep
+                # the original method. See aiohttp.ClientSession._request.
+                if response.status == 303 and method.upper() != hdrs.METH_HEAD:
+                    method = 'get'
+                elif (
+                    response.status in (301, 302)
+                    and method.upper() == hdrs.METH_POST
+                ):
+                    method = 'get'
                 continue
             else:
                 break
