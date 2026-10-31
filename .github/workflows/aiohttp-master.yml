@@ -1,0 +1,66 @@
+name: aiohttp master
+
+# Early warning against unreleased aiohttp changes. Runs weekly and on demand.
+# On demand, aioresponses_ref can also test a PR, e.g. refs/pull/288/head.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      aioresponses_ref:
+        description: "aioresponses branch / tag / commit / refs/pull/N/head to test (blank = the selected branch)"
+        default: ""
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out aioresponses
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.aioresponses_ref || github.ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt packaging
+
+      - name: Check out aiohttp master
+        uses: actions/checkout@v4
+        with:
+          repository: aio-libs/aiohttp
+          ref: master
+          path: aiohttp-src
+          submodules: recursive
+
+      # The git tree ships neither the Cython-generated .c files nor the
+      # generated llhttp sources, so generate them the way aiohttp's own CI
+      # does (npm and make are preinstalled on ubuntu runners).
+      - name: Generate llhttp and cythonize
+        working-directory: aiohttp-src
+        run: |
+          make generate-llhttp
+          make cythonize
+
+      # aioresponses pins aiohttp<4.0 but master is 4.0.0a*, so install the
+      # source tree directly; tests run from the checkout via PYTHONPATH.
+      - name: Install aiohttp from master
+        run: pip install --no-cache-dir ./aiohttp-src
+
+      - name: Show versions
+        run: |
+          git log -1 --oneline
+          python -c "import aiohttp._http_parser, aiohttp; print('aiohttp', aiohttp.__version__, '- compiled extensions active')"
+
+      - name: Tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: python -m pytest -q tests
