@@ -2,12 +2,12 @@
 import asyncio
 import re
 from asyncio import CancelledError, TimeoutError
+from http import HTTPStatus
 from random import uniform
 from typing import Coroutine, Generator, Union
 from unittest.mock import patch
 
 from aiohttp import hdrs
-from aiohttp import http
 from aiohttp.client import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 from ddt import ddt, data, unpack
@@ -158,7 +158,7 @@ class AIOResponsesTestCase(AsyncTestCase):
         with self.assertRaises(ClientResponseError) as cm:
             response = await self.session.get(self.url)
             response.raise_for_status()
-        self.assertEqual(cm.exception.message, http.RESPONSES[400][0])
+        self.assertEqual(cm.exception.message, HTTPStatus.BAD_REQUEST.phrase)
 
     @aioresponses()
     @skipIf(condition=AIOHTTP_VERSION < MINIMUM_AIOHTTP_VERSION,
@@ -168,7 +168,7 @@ class AIOResponsesTestCase(AsyncTestCase):
         m.get(self.url, status=400)
         with self.assertRaises(ClientResponseError) as cm:
             await self.session.get(self.url, raise_for_status=True)
-        self.assertEqual(cm.exception.message, http.RESPONSES[400][0])
+        self.assertEqual(cm.exception.message, HTTPStatus.BAD_REQUEST.phrase)
 
     @aioresponses()
     async def test_returned_instance_and_params_handling(self, m):
@@ -777,7 +777,7 @@ class AIOResponsesRaiseForStatusSessionTestCase(AsyncTestCase):
         m.get(self.url, status=400)
         with self.assertRaises(ClientResponseError) as cm:
             await self.session.get(self.url)
-        self.assertEqual(cm.exception.message, http.RESPONSES[400][0])
+        self.assertEqual(cm.exception.message, HTTPStatus.BAD_REQUEST.phrase)
 
     @aioresponses()
     @skipIf(condition=AIOHTTP_VERSION < MINIMUM_AIOHTTP_VERSION,
