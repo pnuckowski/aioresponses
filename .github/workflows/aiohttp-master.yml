@@ -11,10 +11,6 @@ on:
         description: "aioresponses branch / tag / commit / refs/pull/N/head to test (blank = the selected branch)"
         default: ""
         required: false
-      aiohttp_ref:
-        description: "aiohttp branch / tag / commit to test against"
-        default: "master"
-        required: false
 
 permissions:
   contents: read
@@ -37,11 +33,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt packaging
 
-      - name: Check out aiohttp
+      - name: Check out aiohttp master
         uses: actions/checkout@v4
         with:
           repository: aio-libs/aiohttp
-          ref: ${{ inputs.aiohttp_ref || 'master' }}
+          ref: master
           path: aiohttp-src
           submodules: recursive
 
@@ -56,7 +52,7 @@ jobs:
 
       # aioresponses pins aiohttp<4.0 but master is 4.0.0a*, so install the
       # source tree directly; tests run from the checkout via PYTHONPATH.
-      - name: Install aiohttp from source
+      - name: Install aiohttp from master
         run: pip install --no-cache-dir ./aiohttp-src
 
       - name: Show versions
